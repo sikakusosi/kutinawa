@@ -145,7 +145,7 @@ def imageq(target_img_list, singlecoloraxis=True, coloraxis=(0,0), colormap='vir
                             2次元list内に、1つ以上のndarray形式の画像を格納して渡す。
                             2次元listの0次元目が縦、1次元目が横に対応して表示される。
                             例：target_img_list=[[img_a, img_b],
-                                                [img_c, img_d]]
+                            　　                 [img_c, img_d]]
                                 表示は下記のようになる。
                                 ┌─────────────────────┐
                                 │ ┌───────┐ ┌───────┐ │
@@ -168,46 +168,35 @@ def imageq(target_img_list, singlecoloraxis=True, coloraxis=(0,0), colormap='vir
     """
     mplstyle.use('fast')
     plt.interactive(False)
+    fig = plt.figure()
+    val_fig = plt.figure(figsize=(13.0, 7.0))
 
 
     print("""
-    =======================================================================
-    ------- ビューイング系操作 ------- 
+    ======= kutinawa imageq =======
+    ------------ ビューイング系操作 ------------ 
     Drag                : 画像の移動
     shift+Drag          : 画像の部分拡大
     Double click        : 画像全体表示
     Click on the image  : クリックした画像を”着目画像”に指定
+    ------------ 画像比較 ------------ 
     D                   : ”着目画像”と他の画像の差分を表示
+    ------------ clim 調整 ------------ 
     A                   : ”着目画像”の現在描画されている領域でclimを自動スケーリング
-    < (+alt)            : ”着目画像”のclim上限を1%小さく(大きく)
-    > (+alt)            : ”着目画像”のclim下限を1%大きく(小さく)
-    up(↑)/down(↓)       : ”着目画像”のclim範囲を1% 正/負 側にずらす
+    E                   : 全画像の最大-最小を用いて全画像のclimを設定
+    <, > (+alt)         : ”着目画像”のclim上限を1%小さく(<),下限を1%大きく(>)、(+alt)時はclim上限を1%大きく(<),下限を1%小さく(>)
+    up(↑),down(↓)       : ”着目画像”のclim範囲を1% 正(up),負(down)側にずらす
     S                   : ”着目画像”のclimを他の画像にも同期
-    T                   : 全画像の最大/最小を用いて全画像のclimを設定
-    ------------ 解析 ------------ 
-    i / -               : 縦/横方向のラインプロファイルをを別ウィンドウで表示
-    M                   : 11x11画素(マウス位置座標が左上)の画素値を別ウィンドウで表示
-    ----- 画像書き出し、読み込み ----- 
+    ------------ line・ROIを用いた解析 ------------ 
+    i, -                : キー押下時のマウス位置における、縦(i),横(-)方向のラインプロファイルをを別ウィンドウで表示
+    r (+alt)            : キー押下時のマウス位置を左上としたROIを設定 (ROIサイズをデフォルトサイズ(11x11)に戻し、画像外に移動)
+    h, v (+alt)         : ROIサイズの水平(h),垂直(v)拡大(縮小(+alt))を行う
+    I, =                : キー押下時のROIの水平範囲を平均した縦(I),垂直範囲を平均した横(=)方向のラインプロファイルをを別ウィンドウで表示
+    m                   : ROI内画素の画素値を別ウィンドウで表示
+    ------------ 画像書き出し、読み込み ------------ 
     P                   : 現在のfigureをPNGで保存
     ctrl+v              : コピーした画像を着目画像領域に貼り付け
     """)
-
-    # print("""
-    # =======================================================================
-    # Drag                : move the image.
-    # shift+Drag          : zoom-in on the image.
-    # Click on the image  : specify the clicked image as the "focus image".
-    # D                   : Difference between the "focus image" and other images.
-    # A                   : Auto-scaling the clim in the currently drawn area of the "focus image".
-    # < (+alt)            : decrease (increase) the upper clim limit of the "focus image" by 1%.
-    # > (+alt)            : increase (decrease) the lower clim limit of the "focus image" by 1%.
-    # up(↑)/down(↓)       : shifts the clim range of the "focus image" by 1% to the positive/negative side.
-    # S                   : Synchronize the "focus image" clim with other images.
-    # T                   : set the clim of all images using the maximum/minimum of all images.
-    # P                   : save the current figure as PNG.
-    # """)
-
-    val_fig = plt.figure(figsize=(13.0, 7.0))
 
     class all_img_property:
         img_num = 0
@@ -269,6 +258,9 @@ def imageq(target_img_list, singlecoloraxis=True, coloraxis=(0,0), colormap='vir
                     temp = (coloraxis[y][x][0], coloraxis[y][x][1])
                 caxis[-1].append(temp)
 
+    def caxis_update(ax_num,caxis_min,caxis_max):
+        caxis[ax_num][0],caxis[ax_num][1] = caxis_min,caxis_max
+        pass
 
     def mouse_cross_cursor(fig,axhline,axvline):
         def mouse_cursor(event):
@@ -318,67 +310,75 @@ def imageq(target_img_list, singlecoloraxis=True, coloraxis=(0,0), colormap='vir
 
     # ツールを使わず移動、拡大
     def mouse_drag_move(fig,ax_list):
-        global imageq_x1,imageq_y1,imageq_x1data,imageq_y1data,imageq_inaxes_flag,imageq_ctrl_flag,imageq_zoom_rect
-        imageq_inaxes_flag=False
-        imageq_ctrl_flag =False
-        imageq_zoom_rect = patches.Rectangle(xy=(-1, -1),
-                                             width=0,
-                                             height=0,
-                                             ec='#ff1493', fill=False)
-        ax_list[0].add_patch(imageq_zoom_rect)
+        mouse_data = {'x_s':0,
+                      'y_s':0,
+                      'xdata_s':0,
+                      'ydata_s':0,
+                      'inaxes_flag':False,
+                      'shift_flag':False,
+                      'zoom_rect':[]}
+
+        for ax_num,ax_cand in enumerate(ax_list):
+            mouse_data['zoom_rect'].append(patches.Rectangle(xy=(-1, -1),width=0,height=0,ec='#ff1493', fill=False))
+            ax_cand.add_patch(mouse_data['zoom_rect'][-1])
 
         def button_press(event):
-            global imageq_x1,imageq_y1,imageq_x1data,imageq_y1data,imageq_inaxes_flag,imageq_ctrl_flag
-            imageq_inaxes_flag=event.inaxes
-            imageq_ctrl_flag =False
             if event.key=="shift":
-                imageq_ctrl_flag=True
-            imageq_x1 = event.x
-            imageq_y1 = event.y
-            imageq_x1data = event.xdata
-            imageq_y1data = event.ydata
+                mouse_data['shift_flag']=True
+            if event.inaxes:
+                mouse_data['x_s'] = event.x
+                mouse_data['y_s'] = event.y
+                mouse_data['xdata_s'] = event.xdata
+                mouse_data['ydata_s'] = event.ydata
+                mouse_data['inaxes_flag'] = True
             pass
 
         def button_drag(event):
-            global imageq_x1data,imageq_y1data,imageq_inaxes_flag,imageq_ctrl_flag,imageq_zoom_rect
-            if imageq_ctrl_flag:
+            if mouse_data['shift_flag'] and mouse_data['inaxes_flag']:
                 if event.inaxes:
-                    imageq_zoom_rect.set_bounds((imageq_x1data, imageq_y1data, event.xdata - imageq_x1data, event.ydata - imageq_y1data))
+                    for ax_num,ax_cand in enumerate(ax_list):
+                        mouse_data['zoom_rect'][ax_num].set_bounds((mouse_data['xdata_s'], mouse_data['ydata_s'],
+                                                                    event.xdata-mouse_data['xdata_s'], event.ydata-mouse_data['ydata_s']))
                 else:
-                    imageq_zoom_rect.set_bounds((imageq_x1data, imageq_y1data, 0,0))
+                    for ax_num,ax_cand in enumerate(ax_list):
+                        mouse_data['zoom_rect'][ax_num].set_bounds((-1,-1,0,0))
                     pass
                 fig.canvas.draw()
             pass
 
         def button_release(event):
-            global imageq_x1,imageq_y1,imageq_x1data,imageq_y1data,imageq_inaxes_flag,imageq_ctrl_flag
-
-            if imageq_inaxes_flag:
+            if mouse_data['inaxes_flag']:
                 ax_x_px = int( (ax_list[0].bbox.x1-ax_list[0].bbox.x0) )
-                move_x = imageq_x1 - event.x
+                move_x = mouse_data['x_s'] - event.x
                 lim_x = ax_list[0].get_xlim()
                 ax_img_pix_x = lim_x[1]-lim_x[0]
                 move_x_pix = move_x/ax_x_px*ax_img_pix_x
 
                 ax_y_px = int( (ax_list[0].bbox.y1-ax_list[0].bbox.y0) )
-                move_y = imageq_y1 - event.y
+                move_y = mouse_data['y_s'] - event.y
                 lim_y = ax_list[0].get_ylim()
                 ax_img_pix_y = lim_y[1]-lim_y[0]
                 move_y_pix = move_y/ax_y_px*ax_img_pix_y
 
-                if imageq_ctrl_flag:
-                    x_lim = np.sort([imageq_x1data,imageq_x1data-move_x_pix])
-                    y_lim = np.sort([imageq_y1data,imageq_y1data-move_y_pix])
+                if mouse_data['shift_flag']:
+                    x_lim = np.sort([mouse_data['xdata_s'],mouse_data['xdata_s']-move_x_pix])
+                    y_lim = np.sort([mouse_data['ydata_s'],mouse_data['ydata_s']-move_y_pix])
                     ax_list[0].set_xlim(x_lim[0],x_lim[1])
                     ax_list[0].set_ylim(y_lim[1],y_lim[0])
                 else:
                     ax_list[0].set_xlim(lim_x[0]+move_x_pix,lim_x[1]+move_x_pix)
                     ax_list[0].set_ylim(lim_y[0]+move_y_pix,lim_y[1]+move_y_pix)
-
                 fig.canvas.draw()
-                imageq_inaxes_flag = False
-                imageq_ctrl_flag = False
-                imageq_zoom_rect.set_bounds((-1, -1, 0, 0))
+
+            mouse_data['x_s']=0
+            mouse_data['y_s']=0
+            mouse_data['xdata_s']=0
+            mouse_data['ydata_s']=0
+            mouse_data['inaxes_flag']=False
+            mouse_data['shift_flag']=False
+            for ax_num,ax_cand in enumerate(ax_list):
+                mouse_data['zoom_rect'][ax_num].set_bounds((-1,-1,0,0))
+
             pass
 
         fig.canvas.mpl_connect('button_press_event',button_press)
@@ -386,57 +386,74 @@ def imageq(target_img_list, singlecoloraxis=True, coloraxis=(0,0), colormap='vir
         fig.canvas.mpl_connect('button_release_event',button_release)
         pass
 
+    def main_figure_close(fig,val_fig):
+        def close_event(event):
+            val_fig.clf()
+            plt.close(val_fig)
+            pass
+        fig.canvas.mpl_connect('close_event', close_event)
+        pass
 
     def keyboard_shortcut_onlyPNG(fig):
         def keyboard_onlyPNG(event):
-            # print(event.key)
             if event.key=='P':# save figure in PNG
                 fig.savefig(datetime.datetime.now().strftime('imageq-LP-%Y_%m_%d_%H_%M_%S')+'.png')
             pass
         fig.canvas.mpl_connect('key_press_event',keyboard_onlyPNG)
         pass
 
+    def update_clim_manual(target_im,gain,mode):
+        caxis_min,caxis_max = target_im.get_clim()
+        diff = caxis_max-caxis_min
+        min_change = mode[0]*diff*gain
+        max_change = mode[1]*diff*gain
+        target_im.set_clim(float(caxis_min)+min_change,float(caxis_max)+max_change)
+        pass
 
     # keyboard_shortcut関数
+    temp_state_refnum_clim = ["normal",0,]
     def keyboard_shortcut_sum(fig,ax_list,im):
         def keyboard_shortcut(event):
-            # print(event.key)
+
+            ################################## image diffarence ##################################
             if event.key=='D':# diff
-                s_state,s_ref,s_caxis = fig._suptitle.get_text().split('_')
-                # state
-                if s_state == 'normal':
-                    print('ref-target')
-                    gca_num = 0
-                    caxis_text = ''
+                if temp_state_refnum_clim[0] == 'normal':
                     for ax_num,ax_cand in enumerate(ax_list):
                         if plt.gca() == ax_cand:
-                            gca_num = ax_num
+                            temp_state_refnum_clim[1] = ax_num
                     for num,now_im in enumerate(im):
-                        caxis_text = caxis_text +str((now_im.get_clim())[0])+','+str((now_im.get_clim())[1])+'c'
-                        if num!=gca_num:
-                            set_img = im[gca_num].get_array().copy()-now_im.get_array().copy()
+                        temp_state_refnum_clim.append((now_im.get_clim()))
+                        if num!=temp_state_refnum_clim[1]:
+                            set_img = im[temp_state_refnum_clim[1]].get_array()-now_im.get_array()
                             now_im.set_array(set_img)
-                            now_im.set_clim(np.min(set_img),np.max(set_img))
-                    fig._suptitle.set_text('diff_'+str(gca_num)+'_'+caxis_text)
+                            caxis_min,caxis_max = np.min(set_img),np.max(set_img)
+                            now_im.set_clim(caxis_min,caxis_max)
+                            if caxis_min==caxis_max==0:
+                                print('img'+str(temp_state_refnum_clim[1])+'(ref-img) and img' + str(num) + ' are identical.')
+                            elif caxis_min==caxis_max!=0:
+                                print('img'+str(temp_state_refnum_clim[1])+'(ref-img) and img' + str(num) + ' are identical except for the OFFSET component.')
+                    temp_state_refnum_clim[0] = 'diff'
 
-                elif s_state == 'diff':
-                    caxis_list = s_caxis.split('c')
+                elif temp_state_refnum_clim[0] == 'diff':
                     for num,now_im in enumerate(im):
-                        if int(s_ref)!=num:
-                            now_im.set_array(im[int(s_ref)].get_array().copy()-now_im.get_array().copy())
-                            caxis_min,caxis_max = caxis_list[num].split(',')
+                        if int(temp_state_refnum_clim[1])!=num:
+                            now_im.set_array(im[int(temp_state_refnum_clim[1])].get_array()-now_im.get_array())
+                            caxis_min,caxis_max = temp_state_refnum_clim[int(num+2)]
                             now_im.set_clim(float(caxis_min),float(caxis_max))
-                    print(caxis_list)
-                    fig._suptitle.set_text('normal_dummy_dummy')
+                    temp_state_refnum_clim[0] = 'normal'
+                    temp_state_refnum_clim[1] = 0
+                    del temp_state_refnum_clim[2:]
+
                 fig.canvas.draw()
 
+            ################################## update clim with AUTOMATIC adjustments ##################################
             elif event.key=='A':# auto clim
                 for ax_num,ax_cand in enumerate(ax_list):
                     if plt.gca() == ax_cand:
                         int_x = np.clip((np.array(plt.gca().get_xlim()) + 0.5).astype(int),0,None)
                         int_y = np.clip((np.array(plt.gca().get_ylim()) + 0.5).astype(int),0,None)
                         temp = im[ax_num].get_array()[int_y[1]:int_y[0],int_x[0]:int_x[1]]
-                        plt.clim(np.min(temp),np.max(temp))
+                        im[ax_num].set_clim(np.min(temp),np.max(temp))
                 fig.canvas.draw()
 
             elif event.key=='S':# sync clim
@@ -448,78 +465,74 @@ def imageq(target_img_list, singlecoloraxis=True, coloraxis=(0,0), colormap='vir
                         break
                 fig.canvas.draw()
 
-            elif event.key=='T':# set clim(<all image min>, <all image max>)
-
+            elif event.key=='E':# set clim(<all image min>, <all image max>)
                 for num,now_im in enumerate(im):
                     now_im.set_clim(aip.img_min,aip.img_max)
                 fig.canvas.draw()
 
-            elif event.key=='<':# set clim(<all image min>, <all image max>)
+            ################################## update clim with MANUAL adjustments ##################################
+            elif event.key=='<':
                 for ax_num,ax_cand in enumerate(ax_list):
                     if plt.gca() == ax_cand:
-                        caxis_min,caxis_max = im[ax_num].get_clim()
-                        diff = caxis_max-caxis_min
-                        im[ax_num].set_clim(float(caxis_min),float(caxis_max)-diff*0.01)
+                        update_clim_manual(im[ax_num],0.01,[0,-1])
                 fig.canvas.draw()
-            elif event.key=='alt+<':# set clim(<all image min>, <all image max>)
+            elif event.key=='alt+<':
                 for ax_num,ax_cand in enumerate(ax_list):
                     if plt.gca() == ax_cand:
-                        caxis_min,caxis_max = im[ax_num].get_clim()
-                        diff = caxis_max-caxis_min
-                        im[ax_num].set_clim(float(caxis_min),float(caxis_max)+diff*0.01)
+                        update_clim_manual(im[ax_num],0.01,[0,+1])
+                fig.canvas.draw()
+            elif event.key=='>':
+                for ax_num,ax_cand in enumerate(ax_list):
+                    if plt.gca() == ax_cand:
+                        update_clim_manual(im[ax_num],0.01,[+1,0])
+                fig.canvas.draw()
+            elif event.key=='alt+>':
+                for ax_num,ax_cand in enumerate(ax_list):
+                    if plt.gca() == ax_cand:
+                        update_clim_manual(im[ax_num],0.01,[-1,0])
+                fig.canvas.draw()
+            elif event.key=='ctrl+<':
+                for ax_num,ax_cand in enumerate(ax_list):
+                    if plt.gca() == ax_cand:
+                        update_clim_manual(im[ax_num],0.05,[0,-1])
+                fig.canvas.draw()
+            elif event.key=='ctrl+alt+<':
+                for ax_num,ax_cand in enumerate(ax_list):
+                    if plt.gca() == ax_cand:
+                        update_clim_manual(im[ax_num],0.05,[0,+1])
+                fig.canvas.draw()
+            elif event.key=='ctrl+>':
+                for ax_num,ax_cand in enumerate(ax_list):
+                    if plt.gca() == ax_cand:
+                        update_clim_manual(im[ax_num],0.05,[+1,0])
+                fig.canvas.draw()
+            elif event.key=='ctrl+alt+>':
+                for ax_num,ax_cand in enumerate(ax_list):
+                    if plt.gca() == ax_cand:
+                        update_clim_manual(im[ax_num],0.05,[-1,0])
+                fig.canvas.draw()
+            elif event.key=='up':
+                for ax_num,ax_cand in enumerate(ax_list):
+                    if plt.gca() == ax_cand:
+                        update_clim_manual(im[ax_num],0.01,[+1,+1])
+                fig.canvas.draw()
+            elif event.key=='down':
+                for ax_num,ax_cand in enumerate(ax_list):
+                    if plt.gca() == ax_cand:
+                        update_clim_manual(im[ax_num],0.01,[-1,-1])
+                fig.canvas.draw()
+            elif event.key=='ctrl+up':
+                for ax_num,ax_cand in enumerate(ax_list):
+                    if plt.gca() == ax_cand:
+                        update_clim_manual(im[ax_num],0.05,[+1,+1])
+                fig.canvas.draw()
+            elif event.key=='ctrl+down':
+                for ax_num,ax_cand in enumerate(ax_list):
+                    if plt.gca() == ax_cand:
+                        update_clim_manual(im[ax_num],0.05,[-1,-1])
                 fig.canvas.draw()
 
-            elif event.key=='>':# set clim(<all image min>, <all image max>)
-                for ax_num,ax_cand in enumerate(ax_list):
-                    if plt.gca() == ax_cand:
-                        caxis_min,caxis_max = im[ax_num].get_clim()
-                        diff = caxis_max-caxis_min
-                        im[ax_num].set_clim(float(caxis_min)+diff*0.01,float(caxis_max))
-                fig.canvas.draw()
-            elif event.key=='alt+>':# set clim(<all image min>, <all image max>)
-                for ax_num,ax_cand in enumerate(ax_list):
-                    if plt.gca() == ax_cand:
-                        caxis_min,caxis_max = im[ax_num].get_clim()
-                        diff = caxis_max-caxis_min
-                        im[ax_num].set_clim(float(caxis_min)-diff*0.01,float(caxis_max))
-                fig.canvas.draw()
-
-            elif event.key=='up':# set clim(<all image min>, <all image max>)
-                for ax_num,ax_cand in enumerate(ax_list):
-                    if plt.gca() == ax_cand:
-                        caxis_min,caxis_max = im[ax_num].get_clim()
-                        diff = caxis_max-caxis_min
-                        im[ax_num].set_clim(float(caxis_min)+diff*0.01,float(caxis_max)+diff*0.01)
-                fig.canvas.draw()
-            elif event.key=='down':# set clim(<all image min>, <all image max>)
-                for ax_num,ax_cand in enumerate(ax_list):
-                    if plt.gca() == ax_cand:
-                        caxis_min,caxis_max = im[ax_num].get_clim()
-                        diff = caxis_max-caxis_min
-                        im[ax_num].set_clim(float(caxis_min)-diff*0.01,float(caxis_max)-diff*0.01)
-                fig.canvas.draw()
-
-            elif event.key=='P':# save figure in PNG
-                fig.savefig(datetime.datetime.now().strftime('imageq-%Y_%m_%d_%H_%M_%S')+'.png')
-
-            elif event.key=='ctrl+v':# paste clipboard image
-                import win32clipboard
-                win32clipboard.OpenClipboard()
-                try:
-                    for ax_num,ax_cand in enumerate(ax_list):
-                        if plt.gca() == ax_cand:
-                            caxis_min,caxis_max = im[ax_num].get_clim()
-                            plt.gca().images[-1].colorbar.remove()
-                            plt.gca().clear()
-                            clipboard_img = imread(win32clipboard.GetClipboardData(win32clipboard.CF_HDROP)[0])
-                            aip.update_minmax(clipboard_img)
-                            imshow_block(ax[-1],im,ax_num,clipboard_img,caxis_min,caxis_max)
-                            fig.canvas.draw()
-                            print(aip.img_w_max,aip.img_h_max)
-                except:
-                    pass
-                win32clipboard.CloseClipboard()
-
+            ################################## line ROI analyze ##################################
             elif event.key=='-':
                 if event.inaxes:
                     mouse_x, mouse_y = int(event.xdata + 0.5), int(event.ydata + 0.5)
@@ -555,6 +568,7 @@ def imageq(target_img_list, singlecoloraxis=True, coloraxis=(0,0), colormap='vir
                     ana_fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)
                     ana_fig.show()
                     keyboard_shortcut_onlyPNG(ana_fig)
+                    main_figure_close(fig,ana_fig)
 
             elif event.key=='i':
                 if event.inaxes:
@@ -572,7 +586,7 @@ def imageq(target_img_list, singlecoloraxis=True, coloraxis=(0,0), colormap='vir
                     for ax_num,ax_cand in enumerate(ax_list):
                         temp_img = im[ax_num].get_array()
                         caxis_min,caxis_max = im[ax_num].get_clim()
-                        plt_sub_ax.plot(np.arange(img_ylim[0],img_ylim[1],-1),temp_img[img_ylim[0]:img_ylim[1]:-1,mouse_x])
+                        plt_sub_ax.plot(np.arange(img_ylim[1],img_ylim[0]),temp_img[img_ylim[1]:img_ylim[0],mouse_x])
                         img_sub_ax.append(ana_fig.add_subplot(2,len(ax_list),len(ax_list)+ax_num+1,picker=True))
                         imshow_block(ax=img_sub_ax[-1],
                                      im=img_sub_im,
@@ -591,37 +605,192 @@ def imageq(target_img_list, singlecoloraxis=True, coloraxis=(0,0), colormap='vir
                     ana_fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)
                     ana_fig.show()
                     keyboard_shortcut_onlyPNG(ana_fig)
+                    main_figure_close(fig,ana_fig)
 
-            elif event.key=='M':
+            elif event.key=='r': #set ROI
                 if event.inaxes:
-                    mouse_x, mouse_y = int(event.xdata + 0.5), int(event.ydata + 0.5)
-                    val_view_size = 11
-                    mouse_x_s, mouse_y_s = np.clip(mouse_x,0,None), np.clip(mouse_y,0,None)
-                    mouse_x_e, mouse_y_e = np.clip(mouse_x+val_view_size,0,None), np.clip(mouse_y+val_view_size,0,None)
-                    print('x=',mouse_x_s,'~',mouse_x_e,', y=',mouse_y_s,'~',mouse_y_e)
+                    mouse_x, mouse_y = int(event.xdata + 0.5)-0.5, int(event.ydata + 0.5)-0.5
+                    for ax_num,ax_cand in enumerate(ax_list):
+                        roi_list[ax_num].set_xy((mouse_x,mouse_y))
+                    fig.canvas.draw()
+            elif event.key=='alt+r': #reset ROI
+                if event.inaxes:
+                    for ax_num,ax_cand in enumerate(ax_list):
+                        roi_list[ax_num].set_xy((-11.5, -11.5))
+                        roi_list[ax_num].set_height(11)
+                        roi_list[ax_num].set_width(11)
+                    fig.canvas.draw()
+            elif event.key=='h':
+                for ax_num,ax_cand in enumerate(ax_list):
+                    roi_list[ax_num].set_width(roi_list[ax_num].get_width() + 2)
+                print('roi size(x,y)='+str(roi_list[0].get_width())+', '+str(roi_list[0].get_height()))
+                fig.canvas.draw()
+            elif event.key=='alt+h':
+                for ax_num,ax_cand in enumerate(ax_list):
+                    roi_list[ax_num].set_width(np.clip(roi_list[ax_num].get_width() - 2,3,None))
+                print('roi size(x,y)='+str(roi_list[0].get_width())+', '+str(roi_list[0].get_height()))
+                fig.canvas.draw()
+            elif event.key=='v':
+                for ax_num,ax_cand in enumerate(ax_list):
+                    roi_list[ax_num].set_height(roi_list[ax_num].get_height() + 2)
+                print('roi size(x,y)='+str(roi_list[0].get_width())+', '+str(roi_list[0].get_height()))
+                fig.canvas.draw()
+            elif event.key=='alt+v':
+                for ax_num,ax_cand in enumerate(ax_list):
+                    roi_list[ax_num].set_height(np.clip(roi_list[ax_num].get_height() - 2,3,None))
+                print('roi size(x,y)='+str(roi_list[0].get_width())+', '+str(roi_list[0].get_height()))
+                fig.canvas.draw()
+
+            elif event.key=='m':
+                if event.inaxes:
+                    roi_x_s,roi_y_s = roi_list[0].get_xy()
+                    roi_x_s,roi_y_s = np.clip(roi_x_s+0.5,0,None).astype(int),np.clip(roi_y_s+0.5,0,None).astype(int)
+                    roi_x_e,roi_y_e = (roi_x_s+roi_list[0].get_width()).astype(int),(roi_y_s+roi_list[0].get_height()).astype(int)
                     for ax_num,ax_cand in enumerate(ax_list):
                         temp_img = im[ax_num].get_array()
                         val_ax[ax_num].cla()
                         val_ax[ax_num].axis('off')
-                        temp_table=val_ax[ax_num].table(cellText=np.round(temp_img[mouse_y_s:mouse_y_e,mouse_x_s:mouse_x_e],3),
-                                                        colLabels=np.arange(mouse_x_s,mouse_x_e),
-                                                        rowLabels=np.arange(mouse_y_s,mouse_y_e),
+                        temp_table=val_ax[ax_num].table(cellText=np.round(temp_img[roi_y_s:roi_y_e,roi_x_s:roi_x_e],3),
+                                                        colLabels=np.arange(roi_x_s,roi_x_e),
+                                                        rowLabels=np.arange(roi_y_s,roi_y_e),
                                                         loc="center")
                         temp_table.auto_set_font_size(False)
                         temp_table.set_fontsize(12)
                         temp_table.scale(1, 1)
                         cell_num = 0
                         for pos, cell in temp_table.get_celld().items():
-                            cell.set_height(1/(val_view_size+2))
-                            if cell_num>(val_view_size*val_view_size-1):
+                            cell.set_height(1/(roi_list[0].get_height()+2))
+                            if cell_num>(roi_list[0].get_width()*roi_list[0].get_height()-1):
                                 cell.set_facecolor('gray')
                             cell_num = cell_num+1
 
-                    val_fig.suptitle('x='+str(mouse_x_s)+'~'+str(mouse_x_e)+', y='+str(mouse_y_s)+'~'+str(mouse_y_e)
+                    val_fig.suptitle('x='+str(roi_x_s)+'~'+str(roi_x_e)+', y='+str(roi_y_s)+'~'+str(roi_y_e)
                                      +'\n(Values are rounded to three decimal places.)')
                     val_fig.canvas.draw()
                     val_fig.show()
-                    keyboard_shortcut_onlyPNG(val_fig)
+                    fig.canvas.draw()
+
+            elif event.key=='=':
+                if event.inaxes:
+                    img_xlim = ax[0].get_xlim()
+                    img_ylim = ax[0].get_ylim()
+                    img_xlim = [int(img_xlim[0]+ 0.5), int(img_xlim[1]+ 0.5)]
+                    img_ylim = [int(img_ylim[0]+ 0.5), int(img_ylim[1]+ 0.5)]
+
+                    roi_x_s,roi_y_s = roi_list[0].get_xy()
+                    roi_x_s,roi_y_s = np.clip(roi_x_s+0.5,0,None).astype(int),np.clip(roi_y_s+0.5,0,None).astype(int)
+                    roi_x_e,roi_y_e = (roi_x_s+roi_list[0].get_width()).astype(int),(roi_y_s+roi_list[0].get_height()).astype(int)
+
+                    ana_fig = plt.figure()
+                    plt_sub_ax = ana_fig.add_subplot(2,len(ax_list),(1,len(ax_list)),picker=True)
+                    img_sub_ax = []
+                    img_sub_im = []
+                    legend_str = []
+                    for ax_num,ax_cand in enumerate(ax_list):
+                        temp_img = im[ax_num].get_array()
+                        caxis_min,caxis_max = im[ax_num].get_clim()
+                        plt_sub_ax.plot(np.arange(img_xlim[0],img_xlim[1]),
+                                        np.nanmean(temp_img[roi_y_s:roi_y_e,img_xlim[0]:img_xlim[1]],axis=0))
+                        img_sub_ax.append(ana_fig.add_subplot(2,len(ax_list),len(ax_list)+ax_num+1,picker=True))
+                        imshow_block(ax=img_sub_ax[-1],
+                                     im=img_sub_im,
+                                     im_index=-1,
+                                     target_img=temp_img,
+                                     caxis_min=caxis_min,
+                                     caxis_max=caxis_max)
+                        img_sub_ax[-1].set_xlim(img_xlim)
+                        img_sub_ax[-1].set_ylim(img_ylim)
+                        img_sub_im[-1].set_clim(caxis_min,caxis_max)
+                        img_sub_ax[-1].axhline(y=roi_y_s,color='pink')
+                        img_sub_ax[-1].axhline(y=roi_y_e,color='pink')
+                        legend_str.append(str(ax_num))
+
+                    plt_sub_ax.legend(legend_str)
+                    ana_fig.suptitle('x='+str(img_xlim[0])+'~'+str(img_xlim[1])+', y(mean)='+str(roi_y_s)+'~'+str(roi_y_e))
+                    ana_fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)
+                    ana_fig.show()
+                    keyboard_shortcut_onlyPNG(ana_fig)
+                    main_figure_close(fig,ana_fig)
+
+            elif event.key=='I':
+                if event.inaxes:
+                    img_xlim = ax[0].get_xlim()
+                    img_ylim = ax[0].get_ylim()
+                    img_xlim = [int(img_xlim[0]+ 0.5), int(img_xlim[1]+ 0.5)]
+                    img_ylim = [int(img_ylim[0]+ 0.5), int(img_ylim[1]+ 0.5)]
+
+                    roi_x_s,roi_y_s = roi_list[0].get_xy()
+                    roi_x_s,roi_y_s = np.clip(roi_x_s+0.5,0,None).astype(int),np.clip(roi_y_s+0.5,0,None).astype(int)
+                    roi_x_e,roi_y_e = (roi_x_s+roi_list[0].get_width()).astype(int),(roi_y_s+roi_list[0].get_height()).astype(int)
+
+                    ana_fig = plt.figure()
+                    plt_sub_ax = ana_fig.add_subplot(2,len(ax_list),(1,len(ax_list)),picker=True)
+                    img_sub_ax = []
+                    img_sub_im = []
+                    legend_str = []
+                    for ax_num,ax_cand in enumerate(ax_list):
+                        temp_img = im[ax_num].get_array()
+                        caxis_min,caxis_max = im[ax_num].get_clim()
+                        plt_sub_ax.plot(np.arange(img_ylim[1],img_ylim[0]),
+                                        np.nanmean(temp_img[img_ylim[1]:img_ylim[0]:,roi_x_s:roi_x_e],axis=1))
+                        img_sub_ax.append(ana_fig.add_subplot(2,len(ax_list),len(ax_list)+ax_num+1,picker=True))
+                        imshow_block(ax=img_sub_ax[-1],
+                                     im=img_sub_im,
+                                     im_index=-1,
+                                     target_img=temp_img,
+                                     caxis_min=caxis_min,
+                                     caxis_max=caxis_max)
+                        img_sub_ax[-1].set_xlim(img_xlim)
+                        img_sub_ax[-1].set_ylim(img_ylim)
+                        img_sub_im[-1].set_clim(caxis_min,caxis_max)
+                        img_sub_ax[-1].axvline(x=roi_x_s-0.5,color='pink')
+                        img_sub_ax[-1].axvline(x=roi_x_e-0.5,color='pink')
+                        legend_str.append(str(ax_num))
+
+                    plt_sub_ax.legend(legend_str)
+                    ana_fig.suptitle('x(mean)='+str(roi_x_s)+'~'+str(roi_x_e)+', y='+str(img_xlim[0])+'~'+str(img_xlim[1]))
+                    ana_fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)
+                    ana_fig.show()
+                    keyboard_shortcut_onlyPNG(ana_fig)
+                    main_figure_close(fig,ana_fig)
+
+            elif event.key=='@':
+                if event.inaxes:
+                    roi_x_s,roi_y_s = roi_list[0].get_xy()
+                    roi_x_s,roi_y_s = np.clip(roi_x_s+0.5,0,None).astype(int),np.clip(roi_y_s+0.5,0,None).astype(int)
+                    roi_x_e,roi_y_e = (roi_x_s+roi_list[0].get_width()).astype(int),(roi_y_s+roi_list[0].get_height()).astype(int)
+                    for ax_num,ax_cand in enumerate(ax_list):
+                        temp_img = im[ax_num].get_array()[roi_y_s:roi_y_e,roi_x_s:roi_x_e]
+                        print( '--- img'+str(ax_num)+' x='+str(roi_x_s)+'~'+str(roi_x_e)+', y='+str(roi_y_s)+'~'+str(roi_y_e)+ ' ---\n'
+                               +'mean     :'+str(np.nanmean(temp_img))   +'\n'
+                               +'max      :'+str(np.nanmax(temp_img))    +'\n'
+                               +'min      :'+str(np.nanmin(temp_img))    +'\n'
+                               +'median   :'+str(np.nanmedian(temp_img)) +'\n'
+                               +'std      :'+str(np.nanstd(temp_img))
+                               )
+
+            ################################## file IO ##################################
+            elif event.key=='P':# save figure in PNG
+                fig.savefig(datetime.datetime.now().strftime('imageq-%Y_%m_%d_%H_%M_%S')+'.png')
+
+            elif event.key=='ctrl+v':# paste clipboard image
+                import win32clipboard # win32clipboard is included in the pywin32 package.
+                win32clipboard.OpenClipboard()
+                try:
+                    for ax_num,ax_cand in enumerate(ax_list):
+                        if plt.gca() == ax_cand:
+                            caxis_min,caxis_max = im[ax_num].get_clim()
+                            plt.gca().images[-1].colorbar.remove()
+                            plt.gca().clear()
+                            clipboard_img = imread(win32clipboard.GetClipboardData(win32clipboard.CF_HDROP)[0])
+                            aip.update_minmax(clipboard_img)
+                            imshow_block(ax[-1],im,ax_num,clipboard_img,caxis_min,caxis_max)
+                            caxis_update(ax_num,caxis_min,caxis_max)
+                            fig.canvas.draw()
+                except:
+                    pass
+                win32clipboard.CloseClipboard()
+
             pass
         fig.canvas.mpl_connect('key_press_event',keyboard_shortcut)
         pass
@@ -641,16 +810,6 @@ def imageq(target_img_list, singlecoloraxis=True, coloraxis=(0,0), colormap='vir
         fig.canvas.mpl_connect('key_press_event',layer_switch)
         pass
 
-
-    def main_figure_close(fig,val_fig):
-        def close_event(event):
-            val_fig.clf()
-            plt.close(val_fig)
-            pass
-        fig.canvas.mpl_connect('close_event', close_event)
-        pass
-
-
     def imshow_block(ax,im,im_index,target_img,caxis_min,caxis_max):
 
         if np.ndim(target_img) == 1:
@@ -664,10 +823,10 @@ def imageq(target_img_list, singlecoloraxis=True, coloraxis=(0,0), colormap='vir
             print("imageq-Warning: Drawing is not possible because a 4-channel image has been input.")
 
         if im_index == -1:
-            im.append(plt.imshow(target_img, interpolation='nearest', cmap=colormap, vmin=aip.img_min,vmax=aip.img_max))
+            im.append(ax.imshow(target_img, interpolation='nearest', cmap=colormap, vmin=aip.img_min,vmax=aip.img_max))
         else:
-            im[im_index] = plt.imshow(target_img, interpolation='nearest', cmap=colormap, vmin=aip.img_min,vmax=aip.img_max)
-        plt.clim(caxis_min,caxis_max)
+            im[im_index] = ax.imshow(target_img, interpolation='nearest', cmap=colormap, vmin=aip.img_min,vmax=aip.img_max)
+        im[im_index].set_clim(caxis_min,caxis_max)
         ax.tick_params(labelbottom=False,
                        labelleft=False,
                        labelright=False,
@@ -681,22 +840,21 @@ def imageq(target_img_list, singlecoloraxis=True, coloraxis=(0,0), colormap='vir
             divider = make_axes_locatable(ax)
             ax_cb = divider.new_horizontal(size="5%", pad=0.075)
             ax.figure.add_axes(ax_cb)
-            plt.colorbar(im[im_index], cax=ax_cb)
+            fig.colorbar(im[im_index], cax=ax_cb)
         if val_view and view_mode=='tile':# 画素値を重畳テキスト表示(小数2桁まで)
             ys, xs = np.meshgrid(range(target_img.shape[0]), range(target_img.shape[1]), indexing='ij')
             for (xi, yi, val) in zip(xs.flatten(), ys.flatten(), target_img.flatten()):
-                plt.text(xi, yi, '{0:.2f}'.format(val), horizontalalignment='center', verticalalignment='center', color='deeppink')
+                ax.text(xi, yi, '{0:.2f}'.format(val), horizontalalignment='center', verticalalignment='center', color='deeppink')
         pass
 
 
     # それぞれのモードで描画
-    fig = plt.figure()
-    fig.suptitle('normal_dummy_dummy',alpha=0)
     ax = []
     im = []
     val_ax = []
-    axhline = []
-    axvline = []
+    axhline_list = []
+    axvline_list = []
+    roi_list = []
     if view_mode=='tile':
         for y in range(sub_y_size):
             for x in range(len(target_img_list[y])):
@@ -707,8 +865,10 @@ def imageq(target_img_list, singlecoloraxis=True, coloraxis=(0,0), colormap='vir
                     ax.append(fig.add_subplot(sub_y_size,sub_x_size, sub_x_size*y+x+1 ,sharex=ax[0],sharey=ax[0]))
                     val_ax.append(val_fig.add_subplot(sub_y_size,sub_x_size, sub_x_size*y+x+1 ,picker=True))
                 imshow_block(ax[-1],im,-1,target_img_list[y][x],caxis[y][x][0],caxis[y][x][1])
-                axhline.append(ax[-1].axhline(y=-0.5,color='pink'))
-                axvline.append(ax[-1].axvline(x=-0.5,color='pink'))
+                axhline_list.append(ax[-1].axhline(y=-0.5,color='pink'))
+                axvline_list.append(ax[-1].axvline(x=-0.5,color='pink'))
+                roi_list.append(patches.Rectangle(xy=(-11.5, -11.5), width=11, height=11, ec='red', fill=False))
+                ax[-1].add_patch(roi_list[-1])
 
                 # 最初の画像を着目画像に指定
                 fig.sca(ax[0])
@@ -723,13 +883,13 @@ def imageq(target_img_list, singlecoloraxis=True, coloraxis=(0,0), colormap='vir
 
     elif view_mode=='layer':
         main_ax_colspan = 10
-        ax.append(plt.subplot2grid((aip.img_num, main_ax_colspan+1), (0, 0), rowspan=aip.img_num, colspan=main_ax_colspan))
+        ax.append(fig.subplot2grid((aip.img_num, main_ax_colspan+1), (0, 0), rowspan=aip.img_num, colspan=main_ax_colspan))
         imshow_block(ax[-1],im,-1,target_img_list[0][0],caxis[0][0][0],caxis[0][0][1])
 
         i = 0
         for y in range(len(target_img_list)):
             for x in range(len(target_img_list[y])):
-                ax.append(plt.subplot2grid((aip.img_num, main_ax_colspan+1), (i, main_ax_colspan), rowspan=1, colspan=1))
+                ax.append(fig.subplot2grid((aip.img_num, main_ax_colspan+1), (i, main_ax_colspan), rowspan=1, colspan=1))
                 imshow_block(ax[-1],im,-1,target_img_list[y][x],caxis[y][x][0],caxis[y][x][1])
                 i = i + 1
         # layer切り替え関数と接続
@@ -740,7 +900,10 @@ def imageq(target_img_list, singlecoloraxis=True, coloraxis=(0,0), colormap='vir
     keyboard_shortcut_sum(fig,ax,im)
     mouse_drag_move(fig,ax)
     if cross_cursor:
-        mouse_cross_cursor(fig,axhline,axvline)
+        mouse_cross_cursor(fig,axhline_list,axvline_list)
+
+    keyboard_shortcut_onlyPNG(val_fig)
+
 
     # status barの表示変更
     def format_coord(x, y):
