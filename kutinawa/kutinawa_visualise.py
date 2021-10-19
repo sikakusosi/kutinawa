@@ -138,6 +138,7 @@ def ylim(ymin,ymax):
 
 
 
+
 def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, val_view=False, view_mode='tile', cross_cursor=False,
            ctrl_func_dict1=r"wa.fast_boxfilter(target_img=target_img,fil_h=5,fil_w=5)/25",
            ctrl_func_dict2=r"ndimage.convolve(target_img,wa.generate_gaussian_filter((5,5),0.5),mode='mirror')",
@@ -198,8 +199,9 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
     i, -                    : キー押下時のマウス位置における、縦(i),横(-)方向のラインプロファイルをを別ウィンドウで表示
     r (+alt)                : キー押下時のマウス位置を左上としたROIを設定 (ROIサイズをデフォルトサイズ(11x11)に戻し、画像外に移動)
     >, < (+alt)             : ROIサイズの水平(>),垂直(<)拡大(縮小(+alt))を行う
-    I, =                    : キー押下時のROIの水平範囲を平均した縦(I),垂直範囲を平均した横(=)方向のラインプロファイルをを別ウィンドウで表示
+    I, =                    : ROIの水平範囲を平均した縦(I),垂直範囲を平均した横(=)方向のラインプロファイルをを別ウィンドウで表示
     m                       : ROI内画素の画素値を別ウィンドウで表示
+    h, H                    : ROI内(h)、表示範囲内(H)の画素値ヒストグラム表示 
     ------------ 画像書き出し、読み込み ------------ 
     P                       : 現在のfigureをPNGで保存
     ctrl+v                  : コピーした画像を着目画像領域に貼り付け
@@ -219,7 +221,6 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
     plt.interactive(False)
     fig = plt.figure()
     val_fig = plt.figure()
-    # hst_fig = plt.figure()
 
 
     ############################### 必ず2次元listの各要素に画像が入ってる状態にする
@@ -498,6 +499,9 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
         legend_str = []
         for ax_num,ax_cand in enumerate(ax_list):
             temp_img = im_list[ax_num].get_array()
+            img_xlim2 = [np.clip(img_xlim[0],0,np.shape(temp_img)[1]),np.clip(img_xlim[1],0,np.shape(temp_img)[1])]
+            img_ylim2 = [np.clip(img_ylim[0],0,np.shape(temp_img)[0]),np.clip(img_ylim[1],0,np.shape(temp_img)[0])]
+
             caxis_min,caxis_max = im_list[ax_num].get_clim()
             img_sub_ax.append(ana_fig.add_subplot(2,len(ax_list),len(ax_list)+ax_num+1,picker=True))
             imshow_block(ax=img_sub_ax[-1],
@@ -511,21 +515,29 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
             img_sub_im[-1].set_clim(caxis_min,caxis_max)
             legend_str.append(str(ax_num))
             if mode=='horizontal':
-                plt_sub_ax.plot(np.arange(img_xlim[0],img_xlim[1]),temp_img[mouse_y,img_xlim[0]:img_xlim[1]])
-                img_sub_ax[-1].axhline(y=mouse_y,color='pink')
+                mouse_y2 = np.clip(mouse_y,0,np.shape(temp_img)[0])
+                plt_sub_ax.plot(np.arange(img_xlim2[0],img_xlim2[1]),
+                                temp_img[mouse_y2,img_xlim2[0]:img_xlim2[1]])
+                img_sub_ax[-1].axhline(y=mouse_y2,color='pink')
             elif mode=='vertical':
-                plt_sub_ax.plot(np.arange(img_ylim[1],img_ylim[0]),temp_img[img_ylim[1]:img_ylim[0],mouse_x])
-                img_sub_ax[-1].axvline(x=mouse_x,color='pink')
+                mouse_x2 = np.clip(mouse_x,0,np.shape(temp_img)[1])
+                plt_sub_ax.plot(np.arange(img_ylim2[1],img_ylim2[0]),
+                                temp_img[img_ylim2[1]:img_ylim2[0],mouse_x2])
+                img_sub_ax[-1].axvline(x=mouse_x2,color='pink')
             elif mode=='horizontal_mean':
-                plt_sub_ax.plot(np.arange(img_xlim[0],img_xlim[1]),
-                                np.nanmean(temp_img[roi_y_s:roi_y_e,img_xlim[0]:img_xlim[1]],axis=0))
-                img_sub_ax[-1].axhline(y=roi_y_s,color='pink')
-                img_sub_ax[-1].axhline(y=roi_y_e,color='pink')
+                roi_y_s2 = np.clip(roi_y_s,0,np.shape(temp_img)[0])
+                roi_y_e2 = np.clip(roi_y_e,0,np.shape(temp_img)[0])
+                plt_sub_ax.plot(np.arange(img_xlim2[0],img_xlim2[1]),
+                                np.nanmean(temp_img[roi_y_s2:roi_y_e2,img_xlim2[0]:img_xlim2[1]],axis=0))
+                img_sub_ax[-1].axhline(y=roi_y_s2,color='pink')
+                img_sub_ax[-1].axhline(y=roi_y_e2,color='pink')
             elif mode=='vertical_mean':
-                plt_sub_ax.plot(np.arange(img_ylim[1],img_ylim[0]),
-                                np.nanmean(temp_img[img_ylim[1]:img_ylim[0]:,roi_x_s:roi_x_e],axis=1))
-                img_sub_ax[-1].axvline(x=roi_x_s-0.5,color='pink')
-                img_sub_ax[-1].axvline(x=roi_x_e-0.5,color='pink')
+                roi_x_s2 = np.clip(roi_x_s,0,np.shape(temp_img)[1])
+                roi_x_e2 = np.clip(roi_x_e,0,np.shape(temp_img)[1])
+                plt_sub_ax.plot(np.arange(img_ylim2[1],img_ylim2[0]),
+                                np.nanmean(temp_img[img_ylim2[1]:img_ylim2[0]:,roi_x_s2:roi_x_e2],axis=1))
+                img_sub_ax[-1].axvline(x=roi_x_s2-0.5,color='pink')
+                img_sub_ax[-1].axvline(x=roi_x_e2-0.5,color='pink')
 
         plt_sub_ax.legend(legend_str)
         if mode=='horizontal':
@@ -648,33 +660,6 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
                     roi_list[ax_num].set_height(np.clip(roi_list[ax_num].get_height() - 2,3,None))
                 print('roi size(x,y)='+str(roi_list[0].get_width())+', '+str(roi_list[0].get_height()))
 
-            elif event.key=='m':
-                roi_x_s,roi_y_s = roi_list[0].get_xy()
-                roi_x_s,roi_y_s = np.clip(roi_x_s+0.5,0,None).astype(int),np.clip(roi_y_s+0.5,0,None).astype(int)
-                roi_x_e,roi_y_e = (roi_x_s+roi_list[0].get_width()).astype(int),(roi_y_s+roi_list[0].get_height()).astype(int)
-                for ax_num,ax_cand in enumerate(ax_list):
-                    temp_img = im_list[ax_num].get_array()
-                    val_ax_list[ax_num].cla()
-                    val_ax_list[ax_num].axis('off')
-                    temp_table=val_ax_list[ax_num].table(cellText=np.round(temp_img[roi_y_s:roi_y_e,roi_x_s:roi_x_e],3),
-                                                         colLabels=np.arange(roi_x_s,roi_x_e),
-                                                         rowLabels=np.arange(roi_y_s,roi_y_e),
-                                                         loc="center")
-                    temp_table.auto_set_font_size(False)
-                    temp_table.set_fontsize(12)
-                    temp_table.scale(1, 1)
-                    cell_num = 0
-                    for pos, cell in temp_table.get_celld().items():
-                        cell.set_height(1/(roi_list[0].get_height()+2))
-                        if cell_num>(roi_list[0].get_width()*roi_list[0].get_height()-1):
-                            cell.set_facecolor('gray')
-                        cell_num = cell_num+1
-
-                val_fig.suptitle('x='+str(roi_x_s)+'~'+str(roi_x_e)+', y='+str(roi_y_s)+'~'+str(roi_y_e)
-                                 +'\n(Values are rounded to three decimal places.)')
-                val_fig.canvas.draw()
-                val_fig.show()
-
             elif event.key=='=':
                 make_lineprofile(ax_list,im_list,mode='horizontal_mean',roi_list=roi_list)
 
@@ -695,43 +680,64 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
                            +'std      :'+str(np.nanstd(temp_img))
                            )
 
-            elif event.key=='h':
-                hist_fig = plt.figure()
+            elif event.key=='m':
+                roi_x_s,roi_y_s = roi_list[0].get_xy()
+                roi_x_s,roi_y_s = np.clip(roi_x_s+0.5,0,None).astype(int),np.clip(roi_y_s+0.5,0,None).astype(int)
+                roi_x_e,roi_y_e = (roi_x_s+roi_list[0].get_width()).astype(int),(roi_y_s+roi_list[0].get_height()).astype(int)
+                for ax_num,ax_cand in enumerate(ax_list):
+                    temp_img = im_list[ax_num].get_array()[roi_y_s:roi_y_e,roi_x_s:roi_x_e]
+                    val_ax_list[ax_num].cla()
+                    val_ax_list[ax_num].imshow(temp_img,aspect='auto')
 
+                    ys, xs = np.meshgrid(range(temp_img.shape[0]), range(temp_img.shape[1]), indexing='ij')
+                    for (xi, yi, val) in zip(xs.flatten(), ys.flatten(), temp_img.flatten()):
+                        val_ax_list[ax_num].text(xi, yi, '{0:.3f}'.format(val),
+                                                 horizontalalignment='center', verticalalignment='center', color='brown',fontweight='bold')
+
+                val_fig.suptitle('x='+str(roi_x_s)+'~'+str(roi_x_e)+', y='+str(roi_y_s)+'~'+str(roi_y_e)
+                                 +'\n(Values are rounded to three decimal places.)')
+                val_fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)
+                val_fig.canvas.draw()
+                val_fig.show()
+
+            elif event.key=='h':
                 roi_x_s,roi_y_s = roi_list[0].get_xy()
                 roi_x_s,roi_y_s = np.clip(roi_x_s+0.5,0,None).astype(int),np.clip(roi_y_s+0.5,0,None).astype(int)
                 roi_x_e,roi_y_e = (roi_x_s+roi_list[0].get_width()).astype(int),(roi_y_s+roi_list[0].get_height()).astype(int)
 
-                plt_sub_ax = []
                 for ax_num,ax_cand in enumerate(ax_list):
                     temp_img = im_list[ax_num].get_array()
-                    plt_sub_ax.append(hist_fig.add_subplot(2,len(ax_list),len(ax_list)+ax_num+1,picker=True))
-                    plt_sub_ax[-1].hist(temp_img[roi_y_s:roi_y_e,roi_x_s:roi_x_e].flatten(),bins=256)
+                    roi_y_s2=np.clip(roi_y_s,0,np.shape(temp_img)[0])
+                    roi_y_e2=np.clip(roi_y_e,0,np.shape(temp_img)[0])
+                    roi_x_s2=np.clip(roi_x_s,0,np.shape(temp_img)[1])
+                    roi_x_e2=np.clip(roi_x_e,0,np.shape(temp_img)[1])
+                    val_ax_list[ax_num].cla()
+                    val_ax_list[ax_num].axis('on')
+                    val_ax_list[ax_num].hist(temp_img[roi_y_s2:roi_y_e2,roi_x_s2:roi_x_e2].flatten()
+                                             ,bins=512,range=(aip.all_img_min,aip.all_img_max))
 
-                hist_fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)
-                hist_fig.show()
-                keyboard_shortcut_onlyPNG(hist_fig)
-                main_figure_close(fig,hist_fig)
+                val_fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)
+                val_fig.canvas.draw()
+                val_fig.show()
 
             elif event.key=='H':
-                hist_fig = plt.figure()
-
                 img_xlim = ax_list[0].get_xlim()
                 img_ylim = ax_list[0].get_ylim()
                 img_xlim = [int(img_xlim[0]+ 0.5), int(img_xlim[1]+ 0.5)]
                 img_ylim = [int(img_ylim[0]+ 0.5), int(img_ylim[1]+ 0.5)]
 
-                plt_sub_ax = []
                 for ax_num,ax_cand in enumerate(ax_list):
                     temp_img = im_list[ax_num].get_array()
-                    plt_sub_ax.append(hist_fig.add_subplot(2,len(ax_list),len(ax_list)+ax_num+1,picker=True))
-                    plt_sub_ax[-1].hist(temp_img[img_ylim[1]:img_ylim[0],img_xlim[0]:img_xlim[1]].flatten(),bins=256)
+                    img_xlim2=[np.clip(img_xlim[0],0,np.shape(temp_img)[1]),np.clip(img_xlim[1],0,np.shape(temp_img)[1])]
+                    img_ylim2=[np.clip(img_ylim[0],0,np.shape(temp_img)[0]),np.clip(img_ylim[1],0,np.shape(temp_img)[0])]
+                    val_ax_list[ax_num].cla()
+                    val_ax_list[ax_num].axis('on')
+                    val_ax_list[ax_num].hist(temp_img[img_ylim2[1]:img_ylim2[0],img_xlim2[0]:img_xlim2[1]].flatten(),
+                                             bins=512,range=(aip.all_img_min,aip.all_img_max))
 
-                hist_fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)
-                hist_fig.show()
-                keyboard_shortcut_onlyPNG(hist_fig)
-                main_figure_close(fig,hist_fig)
-
+                val_fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)
+                val_fig.canvas.draw()
+                val_fig.show()
 
             ################################## image processing ##################################
             elif (event.key=='ctrl+1') or (event.key=='ctrl+2') or (event.key=='ctrl+3') or \
@@ -838,11 +844,9 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
                 if (y+x)==0:
                     ax_list.append(fig.add_subplot(aip.sub_y_size,aip.sub_x_size,1,picker=True))
                     val_ax_list.append(val_fig.add_subplot(aip.sub_y_size,aip.sub_x_size,1,picker=True))
-                    # hst_ax_list.append(hst_fig.add_subplot(aip.sub_y_size,aip.sub_x_size,1,picker=True))
                 else:
                     ax_list.append(fig.add_subplot(aip.sub_y_size,aip.sub_x_size, aip.sub_x_size*y+x+1 ,sharex=ax_list[0],sharey=ax_list[0]))
-                    val_ax_list.append(val_fig.add_subplot(aip.sub_y_size,aip.sub_x_size, aip.sub_x_size*y+x+1 ,picker=True))
-                    # hst_ax_list.append(hst_fig.add_subplot(aip.sub_y_size,aip.sub_x_size, aip.sub_x_size*y+x+1 ,picker=True))
+                    val_ax_list.append(val_fig.add_subplot(aip.sub_y_size,aip.sub_x_size, aip.sub_x_size*y+x+1 ,sharex=val_ax_list[0],sharey=val_ax_list[0]))
 
                 imshow_block(ax_list[-1],im_list,-1,target_img_list[y][x],caxis[y][x][0],caxis[y][x][1])
                 axhline_list.append(ax_list[-1].axhline(y=-0.5,color='pink'))
