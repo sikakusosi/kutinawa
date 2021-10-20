@@ -150,6 +150,7 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
            ctrl_func_dict8=r"wa.fast_boxfilter(target_img=target_img,fil_h=5,fil_w=5)/25",
            ctrl_func_dict9=r"wa.fast_boxfilter(target_img=target_img,fil_h=5,fil_w=5)/25",
            singlecoloraxis=True,
+           help_print=True,
            ):
     """
     ショートカットキーで色々できる、画像ビューワー
@@ -180,32 +181,34 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
     :param cross_cursor:
     :return:
     """
-    print("""
-    ======= kutinawa imageq =======
-    ------------ ビューイング系操作 ------------ 
-    Drag                    : 画像の移動
-    shift+Drag              : 画像の部分拡大
-    Double click            : 画像全体表示
-    Click on the image      : クリックした画像を”着目画像”に指定
-    ------------ 画像比較 ------------ 
-    D                       : ”着目画像”と他の画像の差分を表示
-    ------------ clim 調整 ------------ 
-    A                       : ”着目画像”の現在描画されている領域でclimを自動スケーリング
-    W                       : 全画像の最大-最小を用いて全画像のclimを設定
-    left(←),right(→)(+alt)  : ”着目画像”のclim上限を1%小さく(<),下限を1%大きく(>)、(+alt)時はclim上限を1%大きく(<),下限を1%小さく(>)
-    up(↑),down(↓)           : ”着目画像”のclim範囲を1% 正(up),負(down)側にずらす
-    S                       : ”着目画像”のclimを他の画像にも同期
-    ------------ line・ROIを用いた解析 ------------ 
-    i, -                    : キー押下時のマウス位置における、縦(i),横(-)方向のラインプロファイルをを別ウィンドウで表示
-    r (+alt)                : キー押下時のマウス位置を左上としたROIを設定 (ROIサイズをデフォルトサイズ(11x11)に戻し、画像外に移動)
-    >, < (+alt)             : ROIサイズの水平(>),垂直(<)拡大(縮小(+alt))を行う
-    I, =                    : ROIの水平範囲を平均した縦(I),垂直範囲を平均した横(=)方向のラインプロファイルをを別ウィンドウで表示
-    m                       : ROI内画素の画素値を別ウィンドウで表示
-    h, H                    : ROI内(h)、表示範囲内(H)の画素値ヒストグラム表示 
-    ------------ 画像書き出し、読み込み ------------ 
-    P                       : 現在のfigureをPNGで保存
-    ctrl+v                  : コピーした画像を着目画像領域に貼り付け
-    """)
+    if help_print:
+        print("""
+        ======= kutinawa imageq =======
+        ------------ ビューイング系操作 ------------ 
+        Drag                    : 画像の移動
+        shift+Drag              : 画像の部分拡大
+        Double click            : 画像全体表示
+        Click on the image      : クリックした画像を”着目画像”に指定
+        ------------ 画像比較 ------------ 
+        D                       : ”着目画像”と他の画像の差分を表示
+        E                       : ”着目画像”と他の画像のSNR,PSNR,MSSIMをコンソールに表示、SSIMを別ウィンドウで表示
+        ------------ clim 調整 ------------ 
+        A                       : ”着目画像”の現在描画されている領域でclimを自動スケーリング
+        W                       : 全画像の最大-最小を用いて全画像のclimを設定
+        left(←),right(→)(+alt)  : ”着目画像”のclim上限を1%小さく(<),下限を1%大きく(>)、(+alt)時はclim上限を1%大きく(<),下限を1%小さく(>)
+        up(↑),down(↓)           : ”着目画像”のclim範囲を1% 正(up),負(down)側にずらす
+        S                       : ”着目画像”のclimを他の画像にも同期
+        ------------ line・ROIを用いた解析 ------------ 
+        i, -                    : キー押下時のマウス位置における、縦(i),横(-)方向のラインプロファイルをを別ウィンドウで表示
+        r (+alt)                : キー押下時のマウス位置を左上としたROIを設定 (ROIサイズをデフォルトサイズ(11x11)に戻し、画像外に移動)
+        >, < (+alt)             : ROIサイズの水平(>),垂直(<)拡大(縮小(+alt))を行う
+        I, =                    : ROIの水平範囲を平均した縦(I),垂直範囲を平均した横(=)方向のラインプロファイルをを別ウィンドウで表示
+        m                       : ROI内画素の画素値を別ウィンドウで表示
+        h, H                    : ROI内(h)、表示範囲内(H)の画素値ヒストグラム表示 
+        ------------ 画像書き出し、読み込み ------------ 
+        P                       : 現在のfigureをPNGで保存
+        ctrl+v                  : コピーした画像を着目画像領域に貼り付け
+        """)
 
     ctrl_func_dict = {'ctrl+1':ctrl_func_dict1,
                       'ctrl+2':ctrl_func_dict2,
@@ -221,7 +224,6 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
     plt.interactive(False)
     fig = plt.figure()
     val_fig = plt.figure()
-
 
     ############################### 必ず2次元listの各要素に画像が入ってる状態にする
     if isinstance(target_img_list,list)==False:
@@ -279,7 +281,6 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
     ############################### subplot縦横サイズ計測 & 各画像に対する設定を保持する2次元list作成
     caxis = []
     if isinstance(coloraxis,tuple):#coloraxisが一つだけ → 初期はすべてのcoloraxisを同じで
-        print(coloraxis)
         if coloraxis[0]>=coloraxis[1]:#(min,max)の指定が同数もしくは逆転している → coloraxis=(全画像の最小,全画像の最大)
             temp = (aip.all_img_min,aip.all_img_max)
         else:
@@ -294,10 +295,10 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
         for y in range(aip.sub_y_size):
             caxis.append([])
             for x in range(len(target_img_list[y])):
-                if coloraxis[0]>=coloraxis[1]:#(min,max)の指定が同数も育は逆転している → coloraxis=(全画像の最小,全画像の最大)
-                    caxis.append( (aip.img_minmax_list[i][0], aip.img_minmax_list[i][1]) )
+                if coloraxis[y][x][0]>=coloraxis[y][x][1]:#(min,max)の指定が同数も育は逆転している → coloraxis=(全画像の最小,全画像の最大)
+                    caxis[-1].append( (aip.img_minmax_list[i][0], aip.img_minmax_list[i][1]) )
                 else:
-                    caxis.append( (coloraxis[y][x][0], coloraxis[y][x][1]) )
+                    caxis[-1].append( (coloraxis[y][x][0], coloraxis[y][x][1]) )
                 i = i + 1
 
     ############################### 操作系関数群
@@ -560,7 +561,7 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
     temp_state_refnum_clim = ["normal",0,]
     def keyboard_shortcut_sum(fig, ax_list, im_list):
         def keyboard_shortcut(event):
-            print(event.key)
+            # print(event.key)
             ################################## image diffarence ##################################
             if event.key=='D':# diff
                 if temp_state_refnum_clim[0] == 'normal':
@@ -589,6 +590,59 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
                     temp_state_refnum_clim[0] = 'normal'
                     temp_state_refnum_clim[1] = 0
                     del temp_state_refnum_clim[2:]
+
+            elif event.key=='E':# image quality Evaluation
+                ref_ax_num = 0
+                for ax_num,ax_cand in enumerate(ax_list):
+                    if plt.gca() == ax_cand:
+                        ref_ax_num = ax_num
+
+                ref_img = im_list[ref_ax_num].get_array()
+                fil_h=15
+                fil_w=15
+                ref_img_range = np.nanmax(ref_img)-np.nanmin(ref_img)
+                C1 = (ref_img_range*0.01)*(ref_img_range*0.01)
+                C2 = (ref_img_range*0.03)*(ref_img_range*0.03)
+                ref_local_mean = wa.fast_boxfilter(ref_img,fil_h=fil_h,fil_w=fil_w)/fil_h/fil_w
+                ref_local_var  = wa.fast_box_variance_filter(ref_img,fil_h=fil_h,fil_w=fil_w)
+                ssim_list = []
+                coloraxis_list=[]
+                for ax_num,ax_cand in enumerate(ax_list):
+                    eva_img = im_list[ax_num].get_array()
+                    if np.shape(ref_img)==np.shape(eva_img):
+                        # MSE
+                        diff_img = ref_img-eva_img
+                        mse = np.nanmean(diff_img*diff_img)
+                        if mse != 0:
+                            # SNR
+                            signal_range = np.nanmax(ref_img)-np.nanmin(ref_img)
+                            snr = 10*np.log10(signal_range*signal_range/mse)
+                            # PSNR
+                            psnr = 10*np.log10(255*255/mse)
+                            # SSIM
+                            eva_local_mean = wa.fast_boxfilter(eva_img,fil_h=fil_h,fil_w=fil_w)/fil_h/fil_w
+                            eva_local_var  = wa.fast_box_variance_filter(eva_img,fil_h=fil_h,fil_w=fil_w)
+                            ref_eva_cov    = wa.fast_boxfilter(ref_img*eva_img,fil_h=fil_h,fil_w=fil_w)/fil_h/fil_w - (ref_local_mean*eva_local_mean)
+                            ssim_list.append(
+                                ( (2*ref_local_mean*eva_local_mean+C1)*(2*ref_eva_cov+C2) )
+                                /( (ref_local_mean*ref_local_mean+eva_local_mean*eva_local_mean+C1)*(ref_local_var+eva_local_var+C2) )
+                            )
+                            coloraxis_list.append((0,1))
+                            mssim = np.nanmean(ssim_list[-1])
+                        else:
+                            ssim_list.append(eva_img)
+                            coloraxis_list.append((np.nanmin(eva_img),np.nanmax(eva_img)))
+                            snr,psnr,mssim = np.Inf,np.Inf,1
+
+                        title_str = ('Ref-> img'+str(ref_ax_num)+'  :Evaluate-> img'+str(ax_num)+
+                                     '\nSNR   :' + '{0:.5f}'.format(snr)   + '(dB)' +
+                                     '\nPSNR  :' + '{0:.5f}'.format(psnr)  + '(dB)' +
+                                     '\nMSSIM :' + '{0:.5f}'.format(mssim)  +
+                                     '\n')
+                        print(title_str)
+
+                imageq(ssim_list,coloraxis=coloraxis_list,help_print=False)
+
 
             ################################## update clim with AUTOMATIC adjustments ##################################
             elif event.key=='A':# auto clim
@@ -715,6 +769,7 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
                     val_ax_list[ax_num].axis('on')
                     val_ax_list[ax_num].hist(temp_img[roi_y_s2:roi_y_e2,roi_x_s2:roi_x_e2].flatten()
                                              ,bins=512,range=(aip.all_img_min,aip.all_img_max))
+                    val_ax_list[ax_num].set_aspect('auto')
 
                 val_fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)
                 val_fig.canvas.draw()
