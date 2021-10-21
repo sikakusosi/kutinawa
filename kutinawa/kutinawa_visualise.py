@@ -11,6 +11,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from .kutinawa_num2num import rgb_to_hex
 from .kutinawa_io import imread
+from .kutinawa_filter import fast_boxfilter,fast_box_variance_filter
 
 
 def scalar_to_color(value,mode):
@@ -603,8 +604,8 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
                 ref_img_range = np.nanmax(ref_img)-np.nanmin(ref_img)
                 C1 = (ref_img_range*0.01)*(ref_img_range*0.01)
                 C2 = (ref_img_range*0.03)*(ref_img_range*0.03)
-                ref_local_mean = wa.fast_boxfilter(ref_img,fil_h=fil_h,fil_w=fil_w)/fil_h/fil_w
-                ref_local_var  = wa.fast_box_variance_filter(ref_img,fil_h=fil_h,fil_w=fil_w)
+                ref_local_mean = fast_boxfilter(ref_img,fil_h=fil_h,fil_w=fil_w)/fil_h/fil_w
+                ref_local_var  = fast_box_variance_filter(ref_img,fil_h=fil_h,fil_w=fil_w)
                 ssim_list = []
                 coloraxis_list=[]
                 for ax_num,ax_cand in enumerate(ax_list):
@@ -620,9 +621,9 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
                             # PSNR
                             psnr = 10*np.log10(255*255/mse)
                             # SSIM
-                            eva_local_mean = wa.fast_boxfilter(eva_img,fil_h=fil_h,fil_w=fil_w)/fil_h/fil_w
-                            eva_local_var  = wa.fast_box_variance_filter(eva_img,fil_h=fil_h,fil_w=fil_w)
-                            ref_eva_cov    = wa.fast_boxfilter(ref_img*eva_img,fil_h=fil_h,fil_w=fil_w)/fil_h/fil_w - (ref_local_mean*eva_local_mean)
+                            eva_local_mean = fast_boxfilter(eva_img,fil_h=fil_h,fil_w=fil_w)/fil_h/fil_w
+                            eva_local_var  = fast_box_variance_filter(eva_img,fil_h=fil_h,fil_w=fil_w)
+                            ref_eva_cov    = fast_boxfilter(ref_img*eva_img,fil_h=fil_h,fil_w=fil_w)/fil_h/fil_w - (ref_local_mean*eva_local_mean)
                             ssim_list.append(
                                 ( (2*ref_local_mean*eva_local_mean+C1)*(2*ref_eva_cov+C2) )
                                 /( (ref_local_mean*ref_local_mean+eva_local_mean*eva_local_mean+C1)*(ref_local_var+eva_local_var+C2) )
