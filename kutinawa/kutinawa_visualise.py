@@ -2,8 +2,13 @@
 表示系の関数群.
 """
 import datetime
-
 import numpy as np
+
+import matplotlib
+try:
+    matplotlib.use('Qt5Agg')
+except:
+    matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import matplotlib.style as mplstyle
 import matplotlib.patches as patches
@@ -12,6 +17,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from .kutinawa_num2num import rgb_to_hex
 from .kutinawa_io import imread
 from .kutinawa_filter import fast_boxfilter,fast_box_variance_filter
+
 
 
 def scalar_to_color(value,mode):
@@ -150,8 +156,8 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
            ctrl_func_dict7=r"wa.fast_boxfilter(target_img=target_img,fil_h=5,fil_w=5)/25",
            ctrl_func_dict8=r"wa.fast_boxfilter(target_img=target_img,fil_h=5,fil_w=5)/25",
            ctrl_func_dict9=r"wa.fast_boxfilter(target_img=target_img,fil_h=5,fil_w=5)/25",
-           singlecoloraxis=True,
            help_print=True,
+           **kwargs
            ):
     """
     ショートカットキーで色々できる、画像ビューワー
@@ -171,17 +177,30 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
                                 └─────────────────────┘
                             略記法として、1次元listに1つ以上のndarray形式画像を格納して渡す / 1つのndarray形式の画像をそのまま渡す 事が可能。
                             例えば、入力を [img_a, img_b] とした場合は、[[img_a, img_b]]と等価となる。
-    :param singlecoloraxis:
-    :param coloraxis:       表示に使う疑似カラーの範囲。
-                            (最小値,最大値)という構成のtuple　もしくは　2次元リストに格納された同様のtupleを受け付ける。
 
-    :param colormap:
-    :param colorbar:
-    :param val_view:
-    :param view_mode:
-    :param cross_cursor:
-    :return:
+    :param coloraxis:       表示に使う疑似カラーの範囲。
+                            (最小値,最大値)という構成のtuple　もしくは　target_img_listと同様の構成のリストに格納された(最小値,最大値)のtupleを受け付ける。
+                            全画像に対して同じ疑似カラーの範囲を適用する場合は、単一のtupleを設定する。
+                            各画像に対して個別の疑似カラーの範囲を適用する場合は、target_img_listと同様の構成のリストに格納された(最小値,最大値)のtupleを設定する。
+                            またtupleの最小値・最大値が同一の値である場合、画像の最小値最大値から自動で疑似カラーが設定される。
+                                       │                                        [[(min_a, max_a), (min_b, min_c)],
+                                       │         (min, max)                      [(min_c, max_c), (min_d, min_d)]]
+                            ───────────┼──────────────────────────────────────────────────────────────────────────────────
+                            min != max │ 全画像に(min,max)が適用される          個別の画像に、設定された(min_ , max_)が適用される
+                            ───────────┼──────────────────────────────────────────────────────────────────────────────────
+                            min == max │ 全画像に全画像の                       個別の画像ごとに、個別の画像の最小・最大の
+                                       │ 最小・最大の(min,max)が適用される       (min,max)が適用される
+    :param colormap:        表示に用いる疑似カラーマップを指定する。
+                            matplotlibで指定可能なカラーマップ文字列、もしくはLinearSegmentedColormap関数等を用いて作成したLUT形式のカラーマップを受け付ける。
+                            matplotlibで指定可能なカラーマップ文字列は右記URLを参照。https://matplotlib.org/stable/tutorials/colors/colormaps.html
+    :param colorbar:        colorbarを表示するかどうかを指定する。boolを受け付ける。
+    :param val_view:        画素値を画像上にオーバーレイ表示するかどうかを指定する。boolを受け付ける。
+    :param view_mode:       表示方式を選択する。（現在の正式リリース版は view_mode='tile'のみ）
+    :param cross_cursor:    マウス位置に重畳する、十字カーソルを表示するかどうかを指定する。boolを受け付ける。
+    :return:                なし。
     """
+    print(plt.get_backend())
+
     if help_print:
         print("""
         ======= kutinawa imageq =======
@@ -198,6 +217,7 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
         W                       : 全画像の最大-最小を用いて全画像のclimを設定
         left(←),right(→)(+alt)  : ”着目画像”のclim上限を1%小さく(<),下限を1%大きく(>)、(+alt)時はclim上限を1%大きく(<),下限を1%小さく(>)
         up(↑),down(↓)           : ”着目画像”のclim範囲を1% 正(up),負(down)側にずらす
+        　    　(←,→,↑,↓(+ctrl)) : (+ctrl)時は変動量が5%となる
         S                       : ”着目画像”のclimを他の画像にも同期
         ------------ line・ROIを用いた解析 ------------ 
         i, -                    : キー押下時のマウス位置における、縦(i),横(-)方向のラインプロファイルをを別ウィンドウで表示
@@ -557,12 +577,25 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
         main_figure_close(fig,ana_fig)
         pass
 
+    def get_img_in_roi(target_img,roi_x_s,roi_y_s,roi_x_e,roi_y_e):
+        roi_y_s2=np.clip(roi_y_s,0,np.shape(target_img)[0])
+        roi_y_e2=np.clip(roi_y_e,0,np.shape(target_img)[0])
+        roi_x_s2=np.clip(roi_x_s,0,np.shape(target_img)[1])
+        roi_x_e2=np.clip(roi_x_e,0,np.shape(target_img)[1])
+
+        out_img = np.zeros((roi_y_e-roi_y_s,roi_x_e-roi_x_s))*np.NaN
+        if (roi_y_s2==roi_y_e2) or (roi_x_s2==roi_x_e2):
+            out_img = np.array([[0]])
+        else:
+            out_img[roi_y_s2-roi_y_s:(roi_y_s2-roi_y_s)+(roi_y_e2-roi_y_s2),roi_x_s2-roi_x_s:(roi_x_s2-roi_x_s)+(roi_x_e2-roi_x_s2)] = target_img[roi_y_s2:roi_y_e2,roi_x_s2:roi_x_e2]
+
+        return out_img
 
     # keyboard_shortcut関数
     temp_state_refnum_clim = ["normal",0,]
     def keyboard_shortcut_sum(fig, ax_list, im_list):
         def keyboard_shortcut(event):
-            # print(event.key)
+            print(event.key)
             ################################## image diffarence ##################################
             if event.key=='D':# diff
                 if temp_state_refnum_clim[0] == 'normal':
@@ -664,11 +697,11 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
                 update_clim(ax_list,im_list,mode='manual',gain=0.01,plusminus=[-1,0])
             elif event.key=='ctrl+left':
                 update_clim(ax_list,im_list,mode='manual',gain=0.05,plusminus=[0,-1])
-            elif event.key=='ctrl+alt+left':
+            elif (event.key=='ctrl+alt+left') or (event.key=='alt+ctrl+left'):
                 update_clim(ax_list,im_list,mode='manual',gain=0.05,plusminus=[0,+1])
             elif event.key=='ctrl+right':
                 update_clim(ax_list,im_list,mode='manual',gain=0.05,plusminus=[+1,0])
-            elif event.key=='ctrl+alt+right':
+            elif (event.key=='ctrl+alt+right') or (event.key=='alt+ctrl+right'):
                 update_clim(ax_list,im_list,mode='manual',gain=0.05,plusminus=[-1,0])
             elif event.key=='up':
                 update_clim(ax_list,im_list,mode='manual',gain=0.01,plusminus=[+1,+1])
@@ -737,13 +770,20 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
 
             elif event.key=='m':
                 roi_x_s,roi_y_s = roi_list[0].get_xy()
-                roi_x_s,roi_y_s = np.clip(roi_x_s+0.5,0,None).astype(int),np.clip(roi_y_s+0.5,0,None).astype(int)
-                roi_x_e,roi_y_e = (roi_x_s+roi_list[0].get_width()).astype(int),(roi_y_s+roi_list[0].get_height()).astype(int)
+                roi_x_s,roi_y_s = int(roi_x_s+0.5),int(roi_y_s+0.5)
+                roi_x_e,roi_y_e = int(roi_x_s+roi_list[0].get_width()),int(roi_y_s+roi_list[0].get_height())
+                xticklabel = [str(i) for i in np.arange(roi_x_s,roi_x_e)]
+                yticklabel = [str(i) for i in np.arange(roi_y_s,roi_y_e)]
+
                 for ax_num,ax_cand in enumerate(ax_list):
-                    temp_img = im_list[ax_num].get_array()[roi_y_s:roi_y_e,roi_x_s:roi_x_e]
+                    temp_img = get_img_in_roi(im_list[ax_num].get_array(),roi_x_s,roi_y_s,roi_x_e,roi_y_e)
+
                     val_ax_list[ax_num].cla()
                     val_ax_list[ax_num].imshow(temp_img,aspect='auto')
-
+                    val_ax_list[ax_num].set_xticks(np.arange(0,roi_x_e-roi_x_s))
+                    val_ax_list[ax_num].set_xticklabels(xticklabel)
+                    val_ax_list[ax_num].set_yticks(np.arange(0,roi_y_e-roi_y_s))
+                    val_ax_list[ax_num].set_yticklabels(yticklabel)
                     ys, xs = np.meshgrid(range(temp_img.shape[0]), range(temp_img.shape[1]), indexing='ij')
                     for (xi, yi, val) in zip(xs.flatten(), ys.flatten(), temp_img.flatten()):
                         val_ax_list[ax_num].text(xi, yi, '{0:.3f}'.format(val),
@@ -757,21 +797,19 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
 
             elif event.key=='h':
                 roi_x_s,roi_y_s = roi_list[0].get_xy()
-                roi_x_s,roi_y_s = np.clip(roi_x_s+0.5,0,None).astype(int),np.clip(roi_y_s+0.5,0,None).astype(int)
-                roi_x_e,roi_y_e = (roi_x_s+roi_list[0].get_width()).astype(int),(roi_y_s+roi_list[0].get_height()).astype(int)
+                roi_x_s,roi_y_s = int(roi_x_s+0.5),int(roi_y_s+0.5)
+                roi_x_e,roi_y_e = int(roi_x_s+roi_list[0].get_width()),int(roi_y_s+roi_list[0].get_height())
 
                 for ax_num,ax_cand in enumerate(ax_list):
-                    temp_img = im_list[ax_num].get_array()
-                    roi_y_s2=np.clip(roi_y_s,0,np.shape(temp_img)[0])
-                    roi_y_e2=np.clip(roi_y_e,0,np.shape(temp_img)[0])
-                    roi_x_s2=np.clip(roi_x_s,0,np.shape(temp_img)[1])
-                    roi_x_e2=np.clip(roi_x_e,0,np.shape(temp_img)[1])
+                    temp_img = get_img_in_roi(im_list[ax_num].get_array(),roi_x_s,roi_y_s,roi_x_e,roi_y_e)
+
                     val_ax_list[ax_num].cla()
                     val_ax_list[ax_num].axis('on')
-                    val_ax_list[ax_num].hist(temp_img[roi_y_s2:roi_y_e2,roi_x_s2:roi_x_e2].flatten()
-                                             ,bins=512,range=(aip.all_img_min,aip.all_img_max))
+                    val_ax_list[ax_num].hist(temp_img.flatten(),bins=512,range=(aip.all_img_min,aip.all_img_max))
                     val_ax_list[ax_num].set_aspect('auto')
 
+                val_fig.suptitle('x='+str(roi_x_s)+'~'+str(roi_x_e)+', y='+str(roi_y_s)+'~'+str(roi_y_e)
+                                 +'\nHistogram')
                 val_fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)
                 val_fig.canvas.draw()
                 val_fig.show()
@@ -786,11 +824,14 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
                     temp_img = im_list[ax_num].get_array()
                     img_xlim2=[np.clip(img_xlim[0],0,np.shape(temp_img)[1]),np.clip(img_xlim[1],0,np.shape(temp_img)[1])]
                     img_ylim2=[np.clip(img_ylim[0],0,np.shape(temp_img)[0]),np.clip(img_ylim[1],0,np.shape(temp_img)[0])]
+
                     val_ax_list[ax_num].cla()
                     val_ax_list[ax_num].axis('on')
                     val_ax_list[ax_num].hist(temp_img[img_ylim2[1]:img_ylim2[0],img_xlim2[0]:img_xlim2[1]].flatten(),
                                              bins=512,range=(aip.all_img_min,aip.all_img_max))
 
+                val_fig.suptitle('x='+str(img_xlim[0])+'~'+str(img_xlim[1])+', y='+str(img_ylim[1])+'~'+str(img_ylim[0])
+                                 +'\nHistogram')
                 val_fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)
                 val_fig.canvas.draw()
                 val_fig.show()
