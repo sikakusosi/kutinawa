@@ -322,6 +322,20 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
                     caxis[-1].append( (coloraxis[y][x][0], coloraxis[y][x][1]) )
                 i = i + 1
 
+    cmap = []
+    if isinstance(colormap,list)==False:#colormapが一つだけ → すべてのcolormapを同じで
+        for y in range(aip.sub_y_size):
+            cmap.append([colormap for x in range(len(target_img_list[y]))])
+
+    else:# coloraxisがlist=2つ以上 → バラバラのcolormap
+        if isinstance(colormap[0],list)==False:
+            colormap = [colormap]
+        print(cmap)
+        for y in range(aip.sub_y_size):
+            cmap.append([])
+            for x in range(len(target_img_list[y])):
+                cmap[-1].append( colormap[y][x])
+
     ############################### 操作系関数群
     # main figが閉じられた場合の動作
     def main_figure_close(fig,val_fig):
@@ -895,7 +909,7 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
         pass
 
     # 一つのsubplotの描画セット
-    def imshow_block(ax,im,im_index,target_img,caxis_min,caxis_max):
+    def imshow_block(ax,im,im_index,target_img,caxis_min,caxis_max,cmap):
 
         if np.ndim(target_img) == 1:
             print("imageq-Warning: Drawing is not possible because a 1-channel image has been input.")
@@ -908,9 +922,9 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
             print("imageq-Warning: Drawing is not possible because a 4-channel image has been input.")
 
         if im_index == -1:
-            im.append(ax.imshow(target_img, interpolation='nearest', cmap=colormap, vmin=aip.all_img_min,vmax=aip.all_img_max))
+            im.append(ax.imshow(target_img, interpolation='nearest', cmap=cmap, vmin=aip.all_img_min,vmax=aip.all_img_max))
         else:
-            im[im_index] = ax.imshow(target_img, interpolation='nearest', cmap=colormap, vmin=aip.all_img_min,vmax=aip.all_img_max)
+            im[im_index] = ax.imshow(target_img, interpolation='nearest', cmap=cmap, vmin=aip.all_img_min,vmax=aip.all_img_max)
         im[im_index].set_clim(caxis_min,caxis_max)
         ax.tick_params(labelbottom=False,labelleft=False,labelright=False,labeltop=False)
         ax.tick_params(bottom=False,left=False,right=False,top=False)
@@ -945,7 +959,7 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
                     ax_list.append(fig.add_subplot(aip.sub_y_size,aip.sub_x_size, aip.sub_x_size*y+x+1 ,sharex=ax_list[0],sharey=ax_list[0]))
                     val_ax_list.append(val_fig.add_subplot(aip.sub_y_size,aip.sub_x_size, aip.sub_x_size*y+x+1 ,sharex=val_ax_list[0],sharey=val_ax_list[0]))
 
-                imshow_block(ax_list[-1],im_list,-1,target_img_list[y][x],caxis[y][x][0],caxis[y][x][1])
+                imshow_block(ax_list[-1],im_list,-1,target_img_list[y][x],caxis[y][x][0],caxis[y][x][1],cmap[y][x])
                 axhline_list.append(ax_list[-1].axhline(y=-0.5,color='pink'))
                 axvline_list.append(ax_list[-1].axvline(x=-0.5,color='pink'))
                 roi_list.append(patches.Rectangle(xy=(-11.5, -11.5), width=11, height=11, ec='red', fill=False))
