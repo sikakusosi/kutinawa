@@ -539,13 +539,15 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
             img_ylim2 = [np.clip(img_ylim[0],0,np.shape(temp_img)[0]),np.clip(img_ylim[1],0,np.shape(temp_img)[0])]
 
             caxis_min,caxis_max = im_list[ax_num].get_clim()
+            cmap = im_list[ax_num].get_cmap()
             img_sub_ax.append(ana_fig.add_subplot(2,len(ax_list),len(ax_list)+ax_num+1,picker=True))
             imshow_block(ax=img_sub_ax[-1],
                          im=img_sub_im,
                          im_index=-1,
                          target_img=temp_img,
                          caxis_min=caxis_min,
-                         caxis_max=caxis_max)
+                         caxis_max=caxis_max,
+                         cmap=cmap)
             img_sub_ax[-1].set_xlim(img_xlim)
             img_sub_ax[-1].set_ylim(img_ylim)
             img_sub_im[-1].set_clim(caxis_min,caxis_max)
@@ -878,11 +880,12 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
                     for ax_num,ax_cand in enumerate(ax_list):
                         if plt.gca() == ax_cand:
                             caxis_min,caxis_max = im_list[ax_num].get_clim()
+                            cmap = im_list[ax_num].get_cmap()
                             plt.gca().images[-1].colorbar.remove()
                             plt.gca().clear()
                             clipboard_img = imread(win32clipboard.GetClipboardData(win32clipboard.CF_HDROP)[0])
                             aip.update_aip(clipboard_img,ax_num)
-                            imshow_block(ax_list[-1], im_list, ax_num, clipboard_img, caxis_min, caxis_max)
+                            imshow_block(ax_list[-1], im_list, ax_num, clipboard_img, caxis_min, caxis_max,cmap=cmap)
 
                 except:
                     pass
