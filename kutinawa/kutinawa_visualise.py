@@ -12,6 +12,8 @@ except:
 import matplotlib.pyplot as plt
 import matplotlib.style as mplstyle
 import matplotlib.patches as patches
+from matplotlib.colors import ListedColormap
+from matplotlib import pylab
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from .kutinawa_num2num import rgb_to_hex
@@ -143,7 +145,14 @@ def ylim(ymin,ymax):
     plt.gca().figure.canvas.draw()
     pass
 
-
+def cmap_out_range_color(cmap_name='viridis',over_color='white',under_color='black',bad_color='red'):
+    cm = pylab.cm.get_cmap(cmap_name)
+    colors = cm.colors
+    out_cmap = ListedColormap(colors,name='custom',N=255)
+    out_cmap.set_over(over_color)
+    out_cmap.set_under(under_color)
+    out_cmap.set_bad(bad_color)
+    return out_cmap
 
 
 def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, val_view=False, view_mode='tile', cross_cursor=False,
