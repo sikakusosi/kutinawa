@@ -57,3 +57,22 @@ def phase_only_correlation(ref_img, target_img):
               = target_img_pad[np.clip(shift_pos[0],0,None):ref_img_size[0]+np.clip(shift_pos[0],None,0),
                                np.clip(shift_pos[1],0,None):ref_img_size[1]+np.clip(shift_pos[1],None,0)]
     return shift_img
+
+
+def snr_psnr(ref_img,eval_img,maximum_signal_range):
+    diff_img = ref_img-eval_img
+    mse = np.nanmean(diff_img*diff_img)
+
+    snr,psnr=np.Inf,np.Inf
+    if mse != 0:
+        # SNR
+        signal_minmax_range = np.nanmax(ref_img)-np.nanmin(ref_img)
+        snr = 10*np.log10(signal_minmax_range*signal_minmax_range/mse)
+        # PSNR
+        psnr = 10*np.log10(maximum_signal_range*maximum_signal_range/mse)
+
+    return snr,psnr
+
+
+
+
