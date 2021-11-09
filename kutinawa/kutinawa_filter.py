@@ -170,7 +170,7 @@ def generate_gaussian_filter(shape,sigma):
     return gf
 
 
-def image_stack(target_img,rh,rw):
+def image_stack(target_img,rh,rw,padmode='reflect'):
     """
     位置をずらした画像を2次元目にスタックする。
     バイラテラルフィルタ等のpython実装に有用。
@@ -182,7 +182,7 @@ def image_stack(target_img,rh,rw):
     dh = rh+rh+1
     dw = rw+rw+1
     target_img_size = np.shape(target_img)
-    stack_img = np.tile(np.pad(target_img,((rh,rh), (rw,rw)),'reflect')[:,:,np.newaxis],(1,1,dh*dw))
+    stack_img = np.tile(np.pad(target_img,((rh,rh), (rw,rw)),padmode)[:,:,np.newaxis],(1,1,dh*dw))
 
     for h in np.arange(0,dh):
         stack_img[rh:-rh, :, h*(dw):h*dw+dw] = stack_img[h:h+target_img_size[0],:,h*dw:h*dw+dw]
@@ -195,3 +195,41 @@ def mode_filter(target_img,rh,rw):
     stack_target_img = image_stack(target_img,rh,rw)
     mode_img,mode_count_img = stats.mode(stack_target_img,axis=2)
     return np.squeeze(mode_img),np.squeeze(mode_count_img)
+
+
+def convolve2d(target_img,weights,mode='mirror'):
+    """
+    2次元畳み込みをする関数。
+    numpyのみで動作可能。
+    またnanが混入していても、無視して動作可能。
+    :param target_img:  畳み込み対象の画像。2d-ndarray
+    :param weights:     畳み込みの重み。必ず「奇数 x 奇数」のarrayであること。2d-ndarray
+    :param mode:        パディング方式を指定する。下記いずれかの文字列。scipy.ndimage.convolveに準拠。
+                        ‘reflect’     (c b a | a b c d | d c b)
+                        ‘constant’    (k k k | a b c d | k k k)
+                        ‘nearest’     (a a a | a b c d | d d d)
+                        ‘mirror’      (d c b | a b c d | c b a)
+                        ‘wrap’        (b c d | a b c d | a b c)
+                        参考：https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.convolve.html
+
+    :return:            畳み込みされた画像。2d-ndarray
+                        scipy.ndimage.convolve(target_img, weights, mode=mode)と計算誤差程度(最大誤差は10-e13くらい)の一致をする
+    """
+
+    if mode=='mirror':
+        stk_img = image_stack(target_img,np.shape(weights)[0]//2,np.shape(weights)[1]//2,padmode='reflect')
+    elif mode=='reflect':
+        stk_img = image_stack(target_img,np.shape(weights)[0]//2,np.shape(weights)[1]//2,padmode='symmetric')
+    elif mode=='constant':
+        stk_img = image_stack(target_img,np.shape(weights)[0]//2,np.shape(weights)[1]//2,padmode='constant')
+    elif mode=='nearest':
+        stk_img = image_stack(target_img,np.shape(weights)[0]//2,np.shape(weights)[1]//2,padmode='edge')
+    elif mode=='wrap':
+        stk_img = image_stack(target_img,np.shape(weights)[0]//2,np.shape(weights)[1]//2,padmode='wrap')
+    else:
+        raise Exception("""kutinawa-Error! : [mode] was not specified correctly.Specify one of "reflect', 'constant', 'nearest', 'mirror', or 'wrap'.""")
+
+
+    stk_wgt = weights.flatten()[::-1][np.newaxis,np.newaxis,:]
+    out_img = np.nansum(stk_img*stk_wgt,axis=2)
+    return out_img
