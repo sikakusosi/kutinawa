@@ -208,7 +208,6 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
     :param cross_cursor:    マウス位置に重畳する、十字カーソルを表示するかどうかを指定する。boolを受け付ける。
     :return:                なし。
     """
-    print(plt.get_backend())
 
     if help_print:
         print("""
@@ -484,7 +483,7 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
     def keyboard_shortcut_onlyPNG(fig):
         def keyboard_onlyPNG(event):
             if event.key=='P':# save figure in PNG
-                fig.savefig(datetime.datetime.now().strftime('imageq-%Y_%m_%d_%H_%M_%S')+'.png')
+                fig.savefig(datetime.datetime.now().strftime('imageq-%Y_%m_%d_%H_%M_%S')+'.png',bbox_inches='tight')
             pass
         fig.canvas.mpl_connect('key_press_event',keyboard_onlyPNG)
         pass
@@ -620,7 +619,6 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
     temp_state_refnum_clim = ["normal",0,]
     def keyboard_shortcut_sum(fig, ax_list, im_list):
         def keyboard_shortcut(event):
-            print(event.key)
             ################################## image diffarence ##################################
             if event.key=='D':# diff
                 if temp_state_refnum_clim[0] == 'normal':
@@ -880,7 +878,7 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
 
             ################################## file IO ##################################
             elif event.key=='P':# save figure in PNG
-                fig.savefig(datetime.datetime.now().strftime('imageq-%Y_%m_%d_%H_%M_%S')+'.png')
+                fig.savefig(datetime.datetime.now().strftime('imageq-%Y_%m_%d_%H_%M_%S')+'.png',bbox_inches='tight',)
 
             elif event.key=='ctrl+v':# paste clipboard image
                 import win32clipboard # win32clipboard is included in the pywin32 package.
@@ -979,14 +977,14 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
 
                 # 最初の画像を着目画像に指定
                 fig.sca(ax_list[0])
-                ax_list[0].spines['bottom'].set_color("#2B8B96")
-                ax_list[0].spines['top'].set_color("#2B8B96")
-                ax_list[0].spines['left'].set_color("#2B8B96")
-                ax_list[0].spines['right'].set_color("#2B8B96")
-                ax_list[0].spines['bottom'].set_linewidth(4)
-                ax_list[0].spines['top'].set_linewidth(4)
-                ax_list[0].spines['left'].set_linewidth(4)
-                ax_list[0].spines['right'].set_linewidth(4)
+                # ax_list[0].spines['bottom'].set_color("#2B8B96")
+                # ax_list[0].spines['top'].set_color("#2B8B96")
+                # ax_list[0].spines['left'].set_color("#2B8B96")
+                # ax_list[0].spines['right'].set_color("#2B8B96")
+                # ax_list[0].spines['bottom'].set_linewidth(4)
+                # ax_list[0].spines['top'].set_linewidth(4)
+                # ax_list[0].spines['left'].set_linewidth(4)
+                # ax_list[0].spines['right'].set_linewidth(4)
 
     elif view_mode=='layer':
         main_ax_colspan = 10
@@ -1041,4 +1039,8 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
 
     # 表示
     fig.show()
+
+    if 'save_png' in kwargs:
+        fig.set_size_inches(kwargs['save_png'][1],kwargs['save_png'][0])
+        fig.savefig(kwargs['save_png'][2]+'.png',bbox_inches='tight', )
     pass
