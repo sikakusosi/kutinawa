@@ -3,6 +3,7 @@
 """
 import os
 import datetime
+import csv
 
 import numpy as np
 from PIL import Image
@@ -19,16 +20,23 @@ def imwrite(target_img,save_path):
 
 def imread_raw(target_img_path, height, width, mode=np.uint16):
     """
-    imread_raw
-    uint16でraw画像を読み込む
+    modeで定義された型でraw(バイナリ)画像を読み込む
+    :param target_img_path  : 読み込む画像のパス(ファイル名、拡張子含む)
+    :param height           : 画像の高さ
+    :param width            : 画像の幅
+    :param mode             : 読み込みに使用する型、numpyで規定されている型であること
+    :return                 : 読み込まれた画像、2次元ndarray
     """
     img = np.fromfile(target_img_path, mode).reshape([height, width])
     return img
 
 def imwrite_raw(target_img, save_path, mode=np.uint16):
     """
-    imwrite_raw
-    uint16にキャストしてraw画像を書き出す
+    modeで定義された型でキャストしてraw画像を書き出す
+    :param target_img       : 書き出す画像、2次元ndarray
+    :param save_path        : 保存したいパス(ファイル名、拡張子含む)
+    :param mode             : 書き出しに使用する型、numpyで規定されている型であること
+    :return                 : なし
     """
     if type(target_img) == list:
         target_img = np.array(target_img)
@@ -36,6 +44,7 @@ def imwrite_raw(target_img, save_path, mode=np.uint16):
     target_img = target_img.astype(mode)
     target_img.tofile(save_path)
     pass
+
 
 def imread_raw16bin(target_img_path):
     """
@@ -45,6 +54,27 @@ def imread_raw16bin(target_img_path):
     img = np.fromfile(target_img_path, np.uint16)
     img = img[2:].reshape([img[1], img[0]])
     return img
+
+def imread_csv(target_img_path, delimiter=',', skip_header=0):
+    """
+    csvファイルを２次元ndarrayとして読み込む
+    :param target_img_path  : 読み込むcsvのパス
+    :param delimiter        : csvの区切り文字
+    :param skip_header      : csvのheaderの読み飛ばしたい行数
+    :return                 : 読み込まれた画像、2次元ndarray
+    """
+    return np.genfromtxt(target_img_path, delimiter=delimiter, skip_header=skip_header)
+
+def imwrite_csv(target_img, save_path, delimiter=','):
+    """
+    ２次元ndarrayをcsvファイルとして書き出す
+    :param target_img       : 書き出す画像、2次元ndarray
+    :param save_path        : 保存したいパス(ファイル名、拡張子含む)
+    :param delimiter        : csvの区切り文字
+    :return                 : なし
+    """
+    np.savetxt(save_path, target_img, delimiter=delimiter)
+    pass
 
 
 def raw_to_tiff(target_img_path, height, width, save_path):
