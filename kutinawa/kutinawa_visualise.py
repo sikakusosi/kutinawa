@@ -21,7 +21,6 @@ from .kutinawa_io import imread
 from .kutinawa_filter import fast_boxfilter,fast_box_variance_filter
 
 
-
 def scalar_to_color(value,mode):
     """
     0-1の値から、RGB値を返す

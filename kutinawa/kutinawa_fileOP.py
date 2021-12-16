@@ -2,6 +2,7 @@
 ファイルやフォルダの操作を行う関数群.
 """
 import os
+import glob
 
 def makedirs_plus(dir_path, permission=0o2777):
     '''
@@ -14,7 +15,5 @@ def makedirs_plus(dir_path, permission=0o2777):
         os.makedirs(dir_path)
         os.chmod(dir_path, permission)
     pass
-
-
 
 

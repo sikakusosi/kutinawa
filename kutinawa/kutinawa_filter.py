@@ -4,6 +4,7 @@ filterを使った畳み込み処理に関連する関数群.
 import numpy as np
 from scipy import ndimage
 from scipy import stats
+from numpy.lib.stride_tricks import as_strided
 
 def multi_filter(target_img,filter_mat,mode='constant'):
     """
@@ -197,7 +198,7 @@ def mode_filter(target_img,rh,rw):
     return np.squeeze(mode_img),np.squeeze(mode_count_img)
 
 
-def convolve2d(target_img,weights,mode='mirror'):
+def convolve2d_nan(target_img,weights,mode='mirror'):
     """
     2次元畳み込みをする関数。
     numpyのみで動作可能。
@@ -233,3 +234,57 @@ def convolve2d(target_img,weights,mode='mirror'):
     stk_wgt = weights.flatten()[::-1][np.newaxis,np.newaxis,:]
     out_img = np.nansum(stk_img*stk_wgt,axis=2)
     return out_img
+
+
+
+def conv2d_only_numpy(target_img,weights,mode):
+    """
+    2次元畳み込みをする関数。
+    numpyのみで動作可能。
+    :param target_img:  畳み込み対象の画像。2d-ndarray
+    :param weights:     畳み込みの重み。必ず「奇数 x 奇数」のarrayであること。2d-ndarray
+    :param mode:        パディング方式を指定する。下記いずれかの文字列。scipy.ndimage.convolveに準拠。
+                        ‘reflect’     (c b a | a b c d | d c b)
+                        ‘constant’    (k k k | a b c d | k k k)
+                        ‘nearest’     (a a a | a b c d | d d d)
+                        ‘mirror’      (d c b | a b c d | c b a)
+                        ‘wrap’        (b c d | a b c d | a b c)
+                        参考：https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.convolve.html
+
+    :return:            畳み込みされた画像。2d-ndarray
+                        scipy.ndimage.convolve(target_img, weights, mode=mode)と計算誤差程度(最大誤差は10-e13くらい)の一致をする
+    """
+
+    if len(target_img.shape) != 2:
+        print('img should be 2d-array')
+        return
+    if weights.shape[0]%2 == 0 or weights.shape[1]%2 == 0:
+        print('Kernel size shold be odd')
+        return
+
+    rh,rw = np.shape(weights)[0]//2,np.shape(weights)[1]//2
+    if weights.shape[0]>weights.shape[1]:
+        weights = np.pad(weights,((0,0), (rh-rw,rh-rw)),'constant')
+    elif weights.shape[0]<weights.shape[1]:
+        weights = np.pad(weights,((rw-rh,rw-rh), (0,0)),'constant')
+
+    rh,rw = np.shape(weights)[0]//2,np.shape(weights)[1]//2
+    if mode=='mirror':
+        target_img = np.pad(target_img,((rh,rh), (rw,rw)),'reflect')
+    elif mode=='reflect':
+        target_img = np.pad(target_img,((rh,rh), (rw,rw)),'symmetric')
+    elif mode=='constant':
+        target_img = np.pad(target_img,((rh,rh), (rw,rw)),'constant')
+    elif mode=='nearest':
+        target_img = np.pad(target_img,((rh,rh), (rw,rw)),'edge')
+    elif mode=='wrap':
+        target_img = np.pad(target_img,((rh,rh), (rw,rw)),'wrap')
+    else:
+        target_img = np.pad(target_img,((rh,rh), (rw,rw)),'constant')
+
+    sub_shape = tuple(np.subtract(target_img.shape, weights.shape) + 1)
+    conv_shape = sub_shape + weights.shape
+    strides = target_img.strides + target_img.strides
+    submatrices = as_strided(target_img, conv_shape, strides)
+    convolved_mat = np.einsum('ij, klij->kl', np.rot90(weights,2), submatrices)
+    return convolved_mat
