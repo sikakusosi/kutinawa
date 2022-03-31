@@ -4,6 +4,7 @@
 import os
 import datetime
 import csv
+import re
 
 import numpy as np
 from PIL import Image
@@ -190,3 +191,14 @@ def ppm_write(target_img, save_path, min_val, max_val):
     pass
 
 
+def str_to_float_possible(s):  # 正規表現を使って判定を行う
+    s2 = s.replace(' ', '')
+    p = '[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?'
+    return float(s2) if re.fullmatch(p, s2) else s2
+
+def txt_to_float(txt_path,delimiter):
+    f = open(txt_path, 'r')
+    txt_data = f.read()
+    txt_2darray = np.array([txt_1line.split(delimiter) for txt_1line in txt_data.splitlines()])
+    str_float_2dlist = [[str_to_float_possible(txt_1elem) for txt_1elem in txt_1darray] for txt_1darray in txt_2darray]
+    return str_float_2dlist
