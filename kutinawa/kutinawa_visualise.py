@@ -154,17 +154,14 @@ def cmap_out_range_color(cmap_name='viridis',over_color='white',under_color='bla
     return out_cmap
 
 
-def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, val_view=False, view_mode='tile', cross_cursor=False,
-           ctrl_func_dict1=r"wa.fast_boxfilter(target_img=target_img,fil_h=5,fil_w=5)/25",
-           ctrl_func_dict2=r"ndimage.convolve(target_img,wa.generate_gaussian_filter((5,5),0.5),mode='mirror')",
-           ctrl_func_dict3=r"wa.fast_boxfilter(target_img=target_img,fil_h=5,fil_w=5)/25",
-           ctrl_func_dict4=r"wa.fast_boxfilter(target_img=target_img,fil_h=5,fil_w=5)/25",
-           ctrl_func_dict5=r"wa.fast_boxfilter(target_img=target_img,fil_h=5,fil_w=5)/25",
-           ctrl_func_dict6=r"wa.fast_boxfilter(target_img=target_img,fil_h=5,fil_w=5)/25",
-           ctrl_func_dict7=r"wa.fast_boxfilter(target_img=target_img,fil_h=5,fil_w=5)/25",
-           ctrl_func_dict8=r"wa.fast_boxfilter(target_img=target_img,fil_h=5,fil_w=5)/25",
-           ctrl_func_dict9=r"wa.fast_boxfilter(target_img=target_img,fil_h=5,fil_w=5)/25",
-           help_print=True,
+def imageq(target_img_list,
+           coloraxis   = (0,0),
+           colormap    = 'viridis',
+           colorbar    = True,
+           val_view    = False,
+           view_mode   = 'tile',
+           cross_cursor= False,
+           help_print  = True,
            **kwargs
            ):
     """
@@ -211,42 +208,33 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
     if help_print:
         print("""
         ======= kutinawa imageq =======
-        ------------ ビューイング系操作 ------------ 
+        ------------ ビューイング系操作 ------------------------------------ 
         Drag                    : 画像の移動
         shift+Drag              : 画像の部分拡大
         Double click            : 画像全体表示
         Click on the image      : クリックした画像を”着目画像”に指定
-        ------------ 画像比較 ------------ 
+        F1 ~ F12                : (mode='layer'時のみ)表示画像の切り替え
+        ------------ 画像比較 ------------------------------------ 
         D                       : ”着目画像”と他の画像の差分を表示
         E                       : ”着目画像”と他の画像のSNR,PSNR,MSSIMをコンソールに表示、SSIMを別ウィンドウで表示
-        ------------ clim 調整 ------------ 
+        ------------ clim 調整 ------------------------------------ 
         A                       : ”着目画像”の現在描画されている領域でclimを自動スケーリング
         W                       : 全画像の最大-最小を用いて全画像のclimを設定
         left(←),right(→)(+alt)  : ”着目画像”のclim上限を1%小さく(<),下限を1%大きく(>)、(+alt)時はclim上限を1%大きく(<),下限を1%小さく(>)
         up(↑),down(↓)           : ”着目画像”のclim範囲を1% 正(up),負(down)側にずらす
         　    　(←,→,↑,↓(+ctrl)) : (+ctrl)時は変動量が5%となる
         S                       : ”着目画像”のclimを他の画像にも同期
-        ------------ line・ROIを用いた解析 ------------ 
+        ------------ line・ROIを用いた解析 ------------------------------------ 
         i, -                    : キー押下時のマウス位置における、縦(i),横(-)方向のラインプロファイルをを別ウィンドウで表示
         r (+alt)                : キー押下時のマウス位置を左上としたROIを設定 (ROIサイズをデフォルトサイズ(11x11)に戻し、画像外に移動)
         >, < (+alt)             : ROIサイズの水平(>),垂直(<)拡大(縮小(+alt))を行う
         I, =                    : ROIの水平範囲を平均した縦(I),垂直範囲を平均した横(=)方向のラインプロファイルをを別ウィンドウで表示
         m                       : ROI内画素の画素値を別ウィンドウで表示
         h, H                    : ROI内(h)、表示範囲内(H)の画素値ヒストグラム表示 
-        ------------ 画像書き出し、読み込み ------------ 
+        ------------ 画像書き出し、読み込み ------------------------------------ 
         P                       : 現在のfigureをPNGで保存
         ctrl+v                  : コピーした画像を着目画像領域に貼り付け
         """)
-
-    ctrl_func_dict = {'ctrl+1':ctrl_func_dict1,
-                      'ctrl+2':ctrl_func_dict2,
-                      'ctrl+3':ctrl_func_dict3,
-                      'ctrl+4':ctrl_func_dict4,
-                      'ctrl+5':ctrl_func_dict5,
-                      'ctrl+6':ctrl_func_dict6,
-                      'ctrl+7':ctrl_func_dict7,
-                      'ctrl+8':ctrl_func_dict8,
-                      'ctrl+9':ctrl_func_dict9,}
 
     mplstyle.use('fast')
     plt.interactive(False)
@@ -457,9 +445,14 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
                     y_lim = np.sort([mouse_data['ydata_s'],mouse_data['ydata_s']-move_y_pix])
                     ax_list[0].set_xlim(x_lim[0],x_lim[1])
                     ax_list[0].set_ylim(y_lim[1],y_lim[0])
+
                 else:
                     ax_list[0].set_xlim(lim_x[0]+move_x_pix,lim_x[1]+move_x_pix)
                     ax_list[0].set_ylim(lim_y[0]+move_y_pix,lim_y[1]+move_y_pix)
+                    for ax_num,ax_cand in enumerate(ax_list):
+                        mouse_data['zoom_rect'][ax_num].set_bounds((lim_x[0]+move_x_pix,lim_y[0]+move_y_pix,
+                                                                    lim_x[1]-lim_x[0]  ,lim_y[1]-lim_y[0]   ))
+
                 fig.canvas.draw()
 
             mouse_data['x_s']=0
@@ -468,8 +461,6 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
             mouse_data['ydata_s']=0
             mouse_data['inaxes_flag']=False
             mouse_data['shift_flag']=False
-            for ax_num,ax_cand in enumerate(ax_list):
-                mouse_data['zoom_rect'][ax_num].set_bounds((-1,-1,0,0))
 
             pass
 
@@ -858,23 +849,6 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
                 val_fig.canvas.draw()
                 val_fig.show()
 
-            ################################## image processing ##################################
-            elif (event.key=='ctrl+1') or (event.key=='ctrl+2') or (event.key=='ctrl+3') or \
-                    (event.key=='ctrl+4') or (event.key=='ctrl+5') or (event.key=='ctrl+6') or \
-                    (event.key=='ctrl+7') or (event.key=='ctrl+8') or (event.key=='ctrl+9'):
-
-                try:
-                    eval_str = ctrl_func_dict[event.key]
-                    new_target_img_list = []
-                    for target_img_y_list in target_img_list:
-                        new_target_img_list.append([])
-                        for target_img in target_img_y_list:
-                            new_target_img_list[-1].append( eval(eval_str) )
-                    imageq(target_img_list=new_target_img_list)
-                except:
-                    print('imageq-Warning: The ctrl+(1-9) shortcut failed to execute the specified string.')
-
-
             ################################## file IO ##################################
             elif event.key=='P':# save figure in PNG
                 fig.savefig(datetime.datetime.now().strftime('imageq-%Y_%m_%d_%H_%M_%S')+'.png',bbox_inches='tight',)
@@ -897,38 +871,35 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
                     pass
                 win32clipboard.CloseClipboard()
 
+            ################################## layer ##################################
+            elif (event.key=='f1' or event.key=='f2' or event.key=='f3' or event.key=='f4' or event.key=='f5' or event.key=='f6' or
+                  event.key=='f7' or event.key=='f8' or event.key=='f9' or event.key=='f10' or event.key=='f11' or event.key=='f12') and (view_mode=='layer'):# layer
+
+                layer_num = int(event.key[1:])
+                if layer_num<len(im_list):
+                    l0_img = im_list[layer_num].get_array().copy()
+                    im_list[0].set_array(l0_img)
+                    im_list[0].set_clim((im_list[layer_num].get_clim())[0], (im_list[layer_num].get_clim())[1])
+                    print("layer-"+str(layer_num))
+
+            ###########################################################################
             fig.canvas.draw()
             pass
         fig.canvas.mpl_connect('key_press_event',keyboard_shortcut)
-        pass
-
-
-    # layer切り替え関数
-    def layer_numkey_switch(fig,ax_list,im):
-        def layer_switch(event):
-            if ((event.key).isdigit()) and (int(event.key)!=0) and (int(event.key))<len(im):
-                # im[0].set_data(im[int(event.key)].get_array().copy())
-                im[0].set_array(im[int(event.key)].get_array().copy())
-                im[0].set_clim((im[int(event.key)].get_clim())[0], (im[int(event.key)].get_clim())[1])
-                ax_list[0].figure.canvas.draw()
-                # fig.canvas.draw()
-                print("layer-"+event.key)
-            pass
-        fig.canvas.mpl_connect('key_press_event',layer_switch)
         pass
 
     # 一つのsubplotの描画セット
     def imshow_block(ax,im,im_index,target_img,caxis_min,caxis_max,cmap):
 
         if np.ndim(target_img) == 1:
-            print("imageq-Warning: Drawing is not possible because a 1-channel image has been input.")
+            print("imageq-Warning: Drawing is not possible because a 1-dimensional data has been input.")
         elif np.ndim(target_img) == 2:
             pass
         elif np.ndim(target_img) == 3:
             print("imageq-Warning: Value range limited to 0-255 (uint8) due to 3-channel image input.")
             target_img = target_img.astype(np.uint8)
         else:
-            print("imageq-Warning: Drawing is not possible because a 4-channel image has been input.")
+            print("imageq-Warning: Drawing is not possible because a 4-dimensional data has been input.")
 
         if im_index == -1:
             im.append(ax.imshow(target_img, interpolation='nearest', cmap=cmap, vmin=aip.all_img_min,vmax=aip.all_img_max))
@@ -954,7 +925,6 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
     ax_list = []
     im_list = []
     val_ax_list = []
-    hst_ax_list = []
     axhline_list = []
     axvline_list = []
     roi_list = []
@@ -976,28 +946,20 @@ def imageq(target_img_list, coloraxis=(0,0), colormap='viridis', colorbar=True, 
 
                 # 最初の画像を着目画像に指定
                 fig.sca(ax_list[0])
-                # ax_list[0].spines['bottom'].set_color("#2B8B96")
-                # ax_list[0].spines['top'].set_color("#2B8B96")
-                # ax_list[0].spines['left'].set_color("#2B8B96")
-                # ax_list[0].spines['right'].set_color("#2B8B96")
-                # ax_list[0].spines['bottom'].set_linewidth(4)
-                # ax_list[0].spines['top'].set_linewidth(4)
-                # ax_list[0].spines['left'].set_linewidth(4)
-                # ax_list[0].spines['right'].set_linewidth(4)
 
     elif view_mode=='layer':
-        main_ax_colspan = 10
-        ax_list.append(fig.subplot2grid((aip.all_img_num, main_ax_colspan+1), (0, 0), rowspan=aip.all_img_num, colspan=main_ax_colspan))
-        imshow_block(ax_list[-1],im_list,-1,target_img_list[0][0],caxis[0][0][0],caxis[0][0][1])
+        spec = gridspec.GridSpec(nrows=aip.all_img_num, ncols=2, width_ratios=[10,1])
+        ax_list.append(fig.add_subplot(spec[:,0],picker=True))
+        val_ax_list.append(val_fig.add_subplot(spec[:,0],picker=True))
+        imshow_block(ax_list[-1],im_list,-1,target_img_list[0][0],caxis[0][0][0],caxis[0][0][1],cmap[0][0])
 
         i = 0
         for y in range(len(target_img_list)):
             for x in range(len(target_img_list[y])):
-                ax_list.append(fig.subplot2grid((aip.all_img_num, main_ax_colspan+1), (i, main_ax_colspan), rowspan=1, colspan=1))
-                imshow_block(ax_list[-1],im_list,-1,target_img_list[y][x],caxis[y][x][0],caxis[y][x][1])
+                ax_list.append(fig.add_subplot(spec[i,1]))
+                val_ax_list.append(val_fig.add_subplot(spec[i,1]))
+                imshow_block(ax_list[-1],im_list,-1,target_img_list[y][x],caxis[y][x][0],caxis[y][x][1],cmap[y][x])
                 i = i + 1
-        # layer切り替え関数と接続
-        layer_numkey_switch(fig,ax_list,im_list)
 
     # マウス、キーボード操作の関数連携
     mouse_click_event(fig,ax_list,im_list)
