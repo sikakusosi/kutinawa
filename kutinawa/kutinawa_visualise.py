@@ -15,6 +15,7 @@ import matplotlib.patches as patches
 from matplotlib.colors import ListedColormap
 from matplotlib import pylab
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib import gridspec
 
 from .kutinawa_num2num import rgb_to_hex
 from .kutinawa_io import imread
@@ -154,18 +155,472 @@ def cmap_out_range_color(cmap_name='viridis',over_color='white',under_color='bla
     return out_cmap
 
 
+def q_basic(fig,init_xy_pos,yud_mode=0):
+
+    local_ax_list = [i for i in fig.get_axes() if i.get_navigate()]
+    # マウスクリック系イベント統合関数
+    def mouse_click_event(fig):
+        def click_event(event):
+            # ダブルクリックで最も大きい画像に合わせて表示領域リセット
+            if event.dblclick:
+                local_ax_list[0].set_xlim(init_xy_pos[0][0], init_xy_pos[0][1])
+                local_ax_list[0].set_ylim(init_xy_pos[1][0], init_xy_pos[1][1])
+
+            # クリックした画像を着目画像(current axes)に指定
+            for ax_cand in fig.get_axes():
+                if event.inaxes == ax_cand:
+                    fig.sca(ax_cand)
+                    ax_cand.spines['bottom'].set_color("#2B8B96")
+                    ax_cand.spines['top'].set_color("#2B8B96")
+                    ax_cand.spines['left'].set_color("#2B8B96")
+                    ax_cand.spines['right'].set_color("#2B8B96")
+                    ax_cand.spines['bottom'].set_linewidth(4)
+                    ax_cand.spines['top'].set_linewidth(4)
+                    ax_cand.spines['left'].set_linewidth(4)
+                    ax_cand.spines['right'].set_linewidth(4)
+                else:
+                    ax_cand.spines['bottom'].set_color("black")
+                    ax_cand.spines['top'].set_color("black")
+                    ax_cand.spines['left'].set_color("black")
+                    ax_cand.spines['right'].set_color("black")
+                    ax_cand.spines['bottom'].set_linewidth(1)
+                    ax_cand.spines['top'].set_linewidth(1)
+                    ax_cand.spines['left'].set_linewidth(1)
+                    ax_cand.spines['right'].set_linewidth(1)
+            fig.canvas.draw()
+        fig.canvas.mpl_connect('button_press_event',click_event)
+        pass
+
+    # ツールを使わず移動、拡大
+    def mouse_drag_move(fig):
+        mouse_data = {'x_s':0,
+                      'y_s':0,
+                      'xdata_s':0,
+                      'ydata_s':0,
+                      'inaxes_flag':False,
+                      'shift_flag':False,
+                      'zoom_rect':[]}
+
+        for ax_num,ax_cand in enumerate(local_ax_list):
+            mouse_data['zoom_rect'].append(patches.Rectangle(xy=(-1, -1),width=0,height=0,ec='#ff1493', fill=False))
+            ax_cand.add_patch(mouse_data['zoom_rect'][-1])
+
+        def button_press(event):
+            if event.key=="shift":
+                mouse_data['shift_flag']=True
+            if event.inaxes:
+                mouse_data['x_s'] = event.x
+                mouse_data['y_s'] = event.y
+                mouse_data['xdata_s'] = event.xdata
+                mouse_data['ydata_s'] = event.ydata
+                mouse_data['inaxes_flag'] = True
+            pass
+
+        def button_drag(event):
+            if mouse_data['shift_flag'] and mouse_data['inaxes_flag']:
+                if event.inaxes:
+                    for ax_num,ax_cand in enumerate(local_ax_list):
+                        mouse_data['zoom_rect'][ax_num].set_bounds((mouse_data['xdata_s'], mouse_data['ydata_s'],
+                                                                    event.xdata-mouse_data['xdata_s'], event.ydata-mouse_data['ydata_s']))
+                else:
+                    for ax_num,ax_cand in enumerate(local_ax_list):
+                        mouse_data['zoom_rect'][ax_num].set_bounds((-1,-1,0,0))
+                    pass
+                fig.canvas.draw()
+            pass
+
+        def button_release(event):
+            if mouse_data['inaxes_flag']:
+                ax_x_px = int( (local_ax_list[0].bbox.x1-local_ax_list[0].bbox.x0) )
+                move_x = mouse_data['x_s'] - event.x
+                lim_x = local_ax_list[0].get_xlim()
+                ax_img_pix_x = lim_x[1]-lim_x[0]
+                move_x_pix = move_x/ax_x_px*ax_img_pix_x
+
+                ax_y_px = int( (local_ax_list[0].bbox.y1-local_ax_list[0].bbox.y0) )
+                move_y = mouse_data['y_s'] - event.y
+                lim_y = local_ax_list[0].get_ylim()
+                ax_img_pix_y = lim_y[1]-lim_y[0]
+                move_y_pix = move_y/ax_y_px*ax_img_pix_y
+
+                if mouse_data['shift_flag']:
+                    x_lim = np.sort([mouse_data['xdata_s'],mouse_data['xdata_s']-move_x_pix])
+                    y_lim = np.sort([mouse_data['ydata_s'],mouse_data['ydata_s']-move_y_pix])
+                    local_ax_list[0].set_xlim(x_lim[0],x_lim[1])
+                    local_ax_list[0].set_ylim(y_lim[int(bool(0-yud_mode))],y_lim[int(bool(1-yud_mode))])
+
+                else:
+                    local_ax_list[0].set_xlim(lim_x[0]+move_x_pix,lim_x[1]+move_x_pix)
+                    local_ax_list[0].set_ylim(lim_y[0]+move_y_pix,lim_y[1]+move_y_pix)
+                    for ax_num,ax_cand in enumerate(local_ax_list):
+                        mouse_data['zoom_rect'][ax_num].set_bounds((lim_x[0]+move_x_pix,lim_y[0]+move_y_pix,
+                                                                    lim_x[1]-lim_x[0]  ,lim_y[1]-lim_y[0]   ))
+
+                fig.canvas.draw()
+
+            mouse_data['x_s']=0
+            mouse_data['y_s']=0
+            mouse_data['xdata_s']=0
+            mouse_data['ydata_s']=0
+            mouse_data['inaxes_flag']=False
+            mouse_data['shift_flag']=False
+
+            pass
+
+        fig.canvas.mpl_connect('button_press_event',button_press)
+        fig.canvas.mpl_connect('motion_notify_event', button_drag)
+        fig.canvas.mpl_connect('button_release_event',button_release)
+        pass
+
+    # PNG保存
+    def keyboard_shortcut_onlyPNG(fig):
+        def keyboard_onlyPNG(event):
+            if event.key=='P':# save figure in PNG
+                fig.savefig(datetime.datetime.now().strftime('kutinawa-%Y_%m_%d_%H_%M_%S')+'.png',bbox_inches='tight')
+            pass
+        fig.canvas.mpl_connect('key_press_event',keyboard_onlyPNG)
+        pass
+
+    mouse_click_event(fig)
+    mouse_drag_move(fig)
+    keyboard_shortcut_onlyPNG(fig)
+
+    return fig
+
+def q_input_shaping_flattening(input_list):
+    if isinstance(input_list, list)==False:
+        if (np.squeeze(input_list)).ndim>2:
+            print("kutinawa-Warning:The input data is flattened and displayed because it had more than two dimensions.")
+        input_list=[np.squeeze(np.reshape(input_list, (1, -1)))]
+    else:
+        temp_in = []
+        for input_i in input_list:
+            if (np.squeeze(input_i)).ndim>2:
+                print("kutinawa-Warning:The input data is flattened and displayed because it had more than two dimensions.")
+            temp_in.append(np.squeeze(np.reshape(input_i,(1,-1))))
+        input_list = temp_in
+    return input_list
+
+def q_option_shaping(plotq_in, plotq_x_len):
+    plot_option = []
+    if isinstance(plotq_in,list)==False:
+        for i in np.arange(plotq_x_len):
+            plot_option.append(plotq_in)
+    else:
+        if plotq_x_len==len(plotq_in):
+            plot_option = plotq_in
+        else:
+            print("Warning: Incorrect plot option designation. Therefore the default option is used.")
+    return plot_option
+
+
+def q_color_shaping(color, plotq_x_len):
+
+    matplotlib_colormap_list = [#Perceptually Uniform Sequential
+        'viridis', 'plasma', 'inferno', 'magma', 'cividis',
+        #Sequential
+        'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
+        'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
+        'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn',
+        #Sequential (2)
+        'binary', 'gist_yarg', 'gist_gray', 'gray', 'bone',
+        'pink', 'spring', 'summer', 'autumn', 'winter', 'cool',
+        'Wistia', 'hot', 'afmhot', 'gist_heat', 'copper',
+        #Diverging
+        'PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu', 'RdYlBu',
+        'RdYlGn', 'Spectral', 'coolwarm', 'bwr', 'seismic',
+        #Cyclic
+        'twilight', 'twilight_shifted', 'hsv',
+        #Qualitative
+        'Pastel1', 'Pastel2', 'Paired', 'Accent', 'Dark2',
+        'Set1', 'Set2', 'Set3', 'tab10', 'tab20', 'tab20b', 'tab20c',
+        #Miscellaneous
+        'flag', 'prism', 'ocean', 'gist_earth', 'terrain',
+        'gist_stern', 'gnuplot', 'gnuplot2', 'CMRmap',
+        'cubehelix', 'brg', 'gist_rainbow', 'rainbow', 'jet',
+        'turbo', 'nipy_spectral', 'gist_ncar']
+
+    kutinawa_color_list = ['#f50035','#06b137','#00aff5','#ffca09','#00e0b4','#3a00cc','#e000a1','#9eff5d','#8d00b8','#7e5936',
+                           '#367d4c','#364c7d','#f27993','#85de9f','#7acef0','#fce281','#97ded0','#937dc9','#9496ff','#8c8c8c',]
+
+    plot_color = []
+    if (isinstance(color,list)==False) and (type(color)==str):
+        if color=='kutinawa_color':
+            for i in np.arange(plotq_x_len):
+                plot_color.append(kutinawa_color_list[i%len(kutinawa_color_list)])
+        elif color in matplotlib_colormap_list:
+            cm = plt.cm.get_cmap(color)
+            for i in np.arange(plotq_x_len):
+                plot_color.append(cm(i/np.clip(plotq_x_len-1,1,None)))
+        else:
+            for i in np.arange(plotq_x_len):
+                plot_color.append(color)
+    else:
+        if plotq_x_len==len(color):
+            plot_color = color
+        else:
+            print("Warning: Incorrect color designation. Therefore the default kutinawa_color is used.")
+
+    return plot_color
+
+
+def plotq(x_list, y_list,
+          color='kutinawa_color',
+          marker='None',
+          markersize=7,
+          linestyle='-',
+          linewidth=2,
+          label='None'):
+    """
+    折れ線グラフを一行で表示し、マウス操作・スクリーンショット保存等のショートカットキー機能を提供する関数。
+
+    :param x_list     :
+    :param y_list     : 入力データ。
+                        1次元list内に、1つ以上のndarray形式のデータを格納して渡す。
+                        略記法として、 1つのndarray形式のデータをそのまま渡す 事が可能。
+    :param color      : 【※list指定可能】線、マーカーの色を指定する。
+                        matplotlibで指定可能なカラーマップ文字列を 単独 もしくは データ個数分含むlist
+                        （参考：https://matplotlib.org/stable/tutorials/colors/colormaps.html）
+    :param marker     : 【※list指定可能】マーカー種類を指定する。
+                        matplotlibで指定可能なマーカー文字列を 単独 もしくは データ個数分含むlist
+                        （参考：https://matplotlib.org/stable/api/markers_api.html）
+    :param markersize : 【※list指定可能】マーカーサイズを指定する。
+                        マーカーサイズを指定する数値を 単独 もしくは データ個数分含むlist
+    :param linestyle  : 【※list指定可能】線のスタイルを指定する。'-', '--', '.', '-.'のいずれか。
+                        matplotlibで指定可能なlinestyle文字列を 単独 もしくは データ個数分含むlist
+                        （参考：https://matplotlib.org/stable/gallery/lines_bars_and_markers/linestyles.html）
+    :param linewidth  : 【※list指定可能】線幅を指定する。
+                        線幅を指定する数値を 単独 もしくは データ個数分含むlist
+    :param label      : 【※list指定可能】データのラベル文字列を指定する。
+
+    ※list指定可能
+    　・単一指定の場合
+    　　　すべてのデータに同じ引数が適用される。
+    　・list指定の場合
+    　　　list格納順に指定した引数が適用される。
+
+    :return: なし
+    """
+
+    #################################################################################################################### データ整形
+    # 必ずx,yデータがlistに入るように
+    x_list = q_input_shaping_flattening(x_list)
+    y_list = q_input_shaping_flattening(y_list)
+
+    # x,yの要素数が違う場合エラー
+    if len(x_list)!=len(y_list):
+        print("plotq-Warning: Plotting is not possible because the x-y data do not have a one-to-one correspondence.")
+        return
+
+    ####################################################################################################################  plot時の線の色、太さ、マーカー等を整形
+    plot_color = q_color_shaping(color, len(x_list))
+    plot_marker = q_option_shaping(marker, len(x_list))
+    plot_markersize = q_option_shaping(markersize, len(x_list))
+    plot_linestyle = q_option_shaping(linestyle, len(x_list))
+    plot_linewidth = q_option_shaping(linewidth, len(x_list))
+    plot_label = np.arange(len(x_list)) if (isinstance(label, list) == False) or (len(label) != len(x_list)) else label
+
+    #################################################################################################################### 描画
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1,picker=True)
+    plot_list = []
+    for i in np.arange(len(x_list)):
+        plot_list.append(ax.plot(x_list[i], y_list[i],
+                                 color=plot_color[i],
+                                 marker=plot_marker[i],
+                                 markersize=plot_markersize[i],
+                                 linestyle=plot_linestyle[i],
+                                 linewidth=plot_linewidth[i],
+                                 label=plot_label[i]
+                                 )
+                         )
+    plot_legend = ax.legend(loc='upper right', bbox_to_anchor=(1, 1),prop={ "weight":"bold","size": "large"})
+
+    plot_map = {}
+    for plot_legend_text, tgt_plot in zip(plot_legend.get_texts(),plot_list):
+        plot_legend_text.set_picker(True)
+        plot_map[plot_legend_text] = tgt_plot[0]
+
+    def legend_switch(fig):
+        def on_pick(event):
+            plot_legend_line = event.artist
+            if plot_legend_line in plot_map.keys():
+                tgt_plot = plot_map[plot_legend_line]
+                visible = not tgt_plot.get_visible()
+                tgt_plot.set_visible(visible)
+                plot_legend_line.set_alpha(1.0 if visible else 0.2)
+                fig.canvas.draw()
+
+        fig.canvas.mpl_connect('pick_event', on_pick)
+        pass
+
+    # q_basic機能付加
+    fig = q_basic(fig=fig,init_xy_pos=[ax.get_xlim(),ax.get_ylim()] )
+    legend_switch(fig)
+    fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)
+    fig.show()
+
+    pass
+
+
+def histq(input_list,
+          interval=1.0,
+          color='kutinawa_color',
+          edgecolor='k',
+          alpha=0.75,
+          label=None,
+          density=False,
+          cumulative=False,
+          histtype='step',
+          orientation='vertical',
+          log=False,
+          mode='hold',
+          ):
+    """
+    ヒストグラムを一行で表示し、マウス操作・スクリーンショット保存等のショートカットキー機能を提供する関数。
+
+    :param input_list : 入力データ。
+                        1次元list内に、1つ以上の1次元ndarray形式のデータを格納して渡す。
+                        略記法として、 1つのndarray形式のデータをそのまま渡す 事が可能。
+    :param interval   : 【全データ共通】各binの値幅。
+                        例 ) interval=0.5、全データの最小値～最大値=3.1~7.9 の場合
+                        　　　3.1, 3.6, 4.1, 4.6, 5.1, 5.6, 6.1, 6.6, 7.1, 7.6, 8.1間をbinとする
+
+    :param color      : 【※list指定可能】塗りつぶし部の色を指定する。
+    :param edgecolor  : 【※list指定可能】線部の色を指定する。
+                         color edgecolorは、下記を受け付ける。
+                         ・matplotlibで指定可能なカラーマップ文字列 単独
+                         　この場合、指定されたカラーマップに従いデータ毎に色が指定される。
+                         　（参考：https://matplotlib.org/stable/tutorials/colors/colormaps.html）
+                         ・matplotlibで指定可能な色を示す文字列('red'、'r'等) もしくは matplotlibで指定可能な色を示す16進数を データ個数分含むlist
+                         　この場合、list格納順に指定色が適用される。
+    :param alpha      : 【※list指定可能】透明度を指定する。
+                        透明度を指定する数値を 単独 もしくは データ個数分含むlist
+    :param label      : 【※list指定可能】データのラベルを指定する。
+    :param density    : 【全データ共通】Trueの場合、確率密度として表示する。
+    :param cumulative : 【全データ共通】Trueの場合、累積ヒストグラムを表示する。
+    :param histtype   : 【全データ共通】表示形式を指定する。
+                        ‘bar’ (通常のヒストグラム), ‘barstacked’ (積み上げヒストグラム),‘step’ (線), ‘stepfilled ‘ (塗りつぶしありの線) から選択。
+    :param orientation: 【全データ共通】ヒストグラムの方向を指定する。　’horizontal’ (水平方向), ‘vertical’ (垂直方向) から選択。
+    :param log        : 【全データ共通】Trueの場合、縦軸を対数目盛で表示する。
+
+    ※list指定可能
+    　・単一指定の場合
+    　　　すべてのデータに同じ引数が適用される。
+    　・list指定の場合
+    　　　list格納順に指定した引数が適用される。
+
+    :return:　なし
+    """
+
+    input_list = q_input_shaping_flattening(input_list)
+
+    temp_min = np.Inf
+    temp_max = -np.Inf
+    for input_i in input_list:
+        temp_min = np.minimum(np.nanmin(input_i),temp_min)
+        temp_max = np.maximum(np.nanmax(input_i),temp_max)
+    hist_bins = np.arange(temp_min, temp_max + interval*2, interval)
+
+    ####################################################################################################################
+    plot_color = q_color_shaping(color, len(input_list))
+    plot_edgecolor = q_color_shaping(edgecolor, len(input_list))
+    plot_alpha = q_option_shaping(alpha, len(input_list))
+    plot_label = np.arange(len(input_list)) if (isinstance(label, list) == False) or (len(label) != len(input_list)) else label
+
+    ####################################################################################################################
+    fig = plt.figure()
+    ax_list = []
+    view_dict = {'hold':0,'sub':1}
+    if mode=='hold':
+        ax_list = [fig.add_subplot(1,1,1,picker=True)]
+        hist_list = []
+        for i in np.arange(len(input_list)):
+            hist_list.append(ax_list[0].hist(input_list[i],
+                                             bins=hist_bins,
+                                             color=plot_color[i],
+                                             alpha=plot_alpha[i],
+                                             label=plot_label[i],
+                                             edgecolor=plot_edgecolor[i],
+                                             density=density,
+                                             cumulative=cumulative,
+                                             histtype=histtype,
+                                             orientation=orientation,
+                                             log=log,
+                                             )
+                             )
+        hist_legend=ax_list[0].legend(loc='upper right', bbox_to_anchor=(1, 1),prop={ "weight":"bold","size": "large"})
+
+        if (histtype=='step') or (histtype=='stepfilled'):
+            hist_map = {}
+            for plot_legend_text, tgt_plot in zip(hist_legend.get_texts(),hist_list):
+                plot_legend_text.set_picker(True)
+                hist_map[plot_legend_text] = tgt_plot[2][0]
+
+            def legend_switch(fig):
+                def on_pick(event):
+                    plot_legend_line = event.artist
+                    if plot_legend_line in hist_map.keys():
+                        tgt_plot = hist_map[plot_legend_line]
+                        visible = not tgt_plot.get_visible()
+                        tgt_plot.set_visible(visible)
+                        plot_legend_line.set_alpha(1.0 if visible else 0.2)
+                        fig.canvas.draw()
+                fig.canvas.mpl_connect('pick_event', on_pick)
+                pass
+
+            legend_switch(fig)
+
+    elif mode=='sub':
+        sub_x=sub_y=0
+        if orientation=='vertical':
+            sub_x = 1
+            sub_y = len(input_list)
+        elif orientation=='horizontal':
+            sub_x = len(input_list)
+            sub_y = 1
+
+        hist_list = []
+        for i in np.arange(len(input_list)):
+            if i==0:
+                ax_list.append(fig.add_subplot(sub_y,sub_x,i+1,picker=True))
+            else:
+                ax_list.append(fig.add_subplot(sub_y,sub_x,i+1,picker=True,sharex=ax_list[0],sharey=ax_list[0]))
+
+            hist_list.append(ax_list[i*view_dict[mode]].hist(input_list[i],
+                                                             bins=hist_bins,
+                                                             color=plot_color[i],
+                                                             alpha=plot_alpha[i],
+                                                             label=plot_label[i],
+                                                             edgecolor=plot_edgecolor[i],
+                                                             density=density,
+                                                             cumulative=cumulative,
+                                                             histtype=histtype,
+                                                             orientation=orientation,
+                                                             log=log,
+                                                             )
+                             )
+
+    # q_basic機能付加
+    fig = q_basic(fig=fig,init_xy_pos=[ax_list[0].get_xlim(),ax_list[0].get_ylim()] )
+    fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)
+    fig.show()
+
+    pass
+
+
 def imageq(target_img_list,
            coloraxis   = (0,0),
            colormap    = 'viridis',
            colorbar    = True,
            val_view    = False,
            view_mode   = 'tile',
-           cross_cursor= False,
            help_print  = True,
            **kwargs
            ):
     """
-    ショートカットキーで色々できる、画像ビューワー
+    ショートカットキーで色々できる、画像ビューワー。
+
     :param target_img_list: 表示したい画像。
                             2次元list内に、1つ以上のndarray形式の画像を格納して渡す。
                             2次元listの0次元目が縦、1次元目が横に対応して表示される。
@@ -188,7 +643,7 @@ def imageq(target_img_list,
                             全画像に対して同じ疑似カラーの範囲を適用する場合は、単一のtupleを設定する。
                             各画像に対して個別の疑似カラーの範囲を適用する場合は、target_img_listと同様の構成のリストに格納された(最小値,最大値)のtupleを設定する。
                             またtupleの最小値・最大値が同一の値である場合、画像の最小値最大値から自動で疑似カラーが設定される。
-                                       │                                        [[(min_a, max_a), (min_b, min_c)],
+                                       │                                        [[(min_a, max_a), (min_b, min_b)],
                                        │         (min, max)                      [(min_c, max_c), (min_d, min_d)]]
                             ───────────┼──────────────────────────────────────────────────────────────────────────────────
                             min != max │ 全画像に(min,max)が適用される          個別の画像に、設定された(min_ , max_)が適用される
@@ -339,134 +794,6 @@ def imageq(target_img_list,
             plt.close(val_fig)
             pass
         fig.canvas.mpl_connect('close_event', close_event)
-        pass
-
-    # 十字カーソル
-    def mouse_cross_cursor(fig,axhline,axvline):
-        def mouse_cursor(event):
-            if event.inaxes:
-                x, y = event.xdata, event.ydata
-                for i,now_axh in enumerate(axhline):
-                    now_axh.set_ydata(y)
-                    axvline[i].set_xdata(x)
-            fig.canvas.draw()
-            pass
-        fig.canvas.mpl_connect('motion_notify_event',mouse_cursor)
-        pass
-
-    # マウスクリック系イベント統合関数
-    def mouse_click_event(fig,ax_list,im):
-        def click_event(event):
-            # ダブルクリックで最も大きい画像に合わせて表示領域リセット
-            if event.dblclick:
-                ax_list[0].set_xlim(-0.5, aip.all_img_w_max-0.5)
-                ax_list[0].set_ylim(aip.all_img_h_max-0.5, -0.5)
-
-
-            # クリックした画像を着目画像(current axes)に指定
-            for ax_cand in ax_list:
-                if event.inaxes == ax_cand:
-                    fig.sca(ax_cand)
-                    ax_cand.spines['bottom'].set_color("#2B8B96")
-                    ax_cand.spines['top'].set_color("#2B8B96")
-                    ax_cand.spines['left'].set_color("#2B8B96")
-                    ax_cand.spines['right'].set_color("#2B8B96")
-                    ax_cand.spines['bottom'].set_linewidth(4)
-                    ax_cand.spines['top'].set_linewidth(4)
-                    ax_cand.spines['left'].set_linewidth(4)
-                    ax_cand.spines['right'].set_linewidth(4)
-                else:
-                    ax_cand.spines['bottom'].set_color("black")
-                    ax_cand.spines['top'].set_color("black")
-                    ax_cand.spines['left'].set_color("black")
-                    ax_cand.spines['right'].set_color("black")
-                    ax_cand.spines['bottom'].set_linewidth(1)
-                    ax_cand.spines['top'].set_linewidth(1)
-                    ax_cand.spines['left'].set_linewidth(1)
-                    ax_cand.spines['right'].set_linewidth(1)
-            fig.canvas.draw()
-        fig.canvas.mpl_connect('button_press_event',click_event)
-        pass
-
-    # ツールを使わず移動、拡大
-    def mouse_drag_move(fig,ax_list):
-        mouse_data = {'x_s':0,
-                      'y_s':0,
-                      'xdata_s':0,
-                      'ydata_s':0,
-                      'inaxes_flag':False,
-                      'shift_flag':False,
-                      'zoom_rect':[]}
-
-        for ax_num,ax_cand in enumerate(ax_list):
-            mouse_data['zoom_rect'].append(patches.Rectangle(xy=(-1, -1),width=0,height=0,ec='#ff1493', fill=False))
-            ax_cand.add_patch(mouse_data['zoom_rect'][-1])
-
-        def button_press(event):
-            if event.key=="shift":
-                mouse_data['shift_flag']=True
-            if event.inaxes:
-                mouse_data['x_s'] = event.x
-                mouse_data['y_s'] = event.y
-                mouse_data['xdata_s'] = event.xdata
-                mouse_data['ydata_s'] = event.ydata
-                mouse_data['inaxes_flag'] = True
-            pass
-
-        def button_drag(event):
-            if mouse_data['shift_flag'] and mouse_data['inaxes_flag']:
-                if event.inaxes:
-                    for ax_num,ax_cand in enumerate(ax_list):
-                        mouse_data['zoom_rect'][ax_num].set_bounds((mouse_data['xdata_s'], mouse_data['ydata_s'],
-                                                                    event.xdata-mouse_data['xdata_s'], event.ydata-mouse_data['ydata_s']))
-                else:
-                    for ax_num,ax_cand in enumerate(ax_list):
-                        mouse_data['zoom_rect'][ax_num].set_bounds((-1,-1,0,0))
-                    pass
-                fig.canvas.draw()
-            pass
-
-        def button_release(event):
-            if mouse_data['inaxes_flag']:
-                ax_x_px = int( (ax_list[0].bbox.x1-ax_list[0].bbox.x0) )
-                move_x = mouse_data['x_s'] - event.x
-                lim_x = ax_list[0].get_xlim()
-                ax_img_pix_x = lim_x[1]-lim_x[0]
-                move_x_pix = move_x/ax_x_px*ax_img_pix_x
-
-                ax_y_px = int( (ax_list[0].bbox.y1-ax_list[0].bbox.y0) )
-                move_y = mouse_data['y_s'] - event.y
-                lim_y = ax_list[0].get_ylim()
-                ax_img_pix_y = lim_y[1]-lim_y[0]
-                move_y_pix = move_y/ax_y_px*ax_img_pix_y
-
-                if mouse_data['shift_flag']:
-                    x_lim = np.sort([mouse_data['xdata_s'],mouse_data['xdata_s']-move_x_pix])
-                    y_lim = np.sort([mouse_data['ydata_s'],mouse_data['ydata_s']-move_y_pix])
-                    ax_list[0].set_xlim(x_lim[0],x_lim[1])
-                    ax_list[0].set_ylim(y_lim[1],y_lim[0])
-
-                else:
-                    ax_list[0].set_xlim(lim_x[0]+move_x_pix,lim_x[1]+move_x_pix)
-                    ax_list[0].set_ylim(lim_y[0]+move_y_pix,lim_y[1]+move_y_pix)
-                    for ax_num,ax_cand in enumerate(ax_list):
-                        mouse_data['zoom_rect'][ax_num].set_bounds((lim_x[0]+move_x_pix,lim_y[0]+move_y_pix,
-                                                                    lim_x[1]-lim_x[0]  ,lim_y[1]-lim_y[0]   ))
-
-                fig.canvas.draw()
-
-            mouse_data['x_s']=0
-            mouse_data['y_s']=0
-            mouse_data['xdata_s']=0
-            mouse_data['ydata_s']=0
-            mouse_data['inaxes_flag']=False
-            mouse_data['shift_flag']=False
-
-            pass
-
-        fig.canvas.mpl_connect('button_press_event',button_press)
-        fig.canvas.mpl_connect('motion_notify_event', button_drag)
-        fig.canvas.mpl_connect('button_release_event',button_release)
         pass
 
     # PNG保存
@@ -850,8 +1177,8 @@ def imageq(target_img_list,
                 val_fig.show()
 
             ################################## file IO ##################################
-            elif event.key=='P':# save figure in PNG
-                fig.savefig(datetime.datetime.now().strftime('imageq-%Y_%m_%d_%H_%M_%S')+'.png',bbox_inches='tight',)
+            # elif event.key=='P':# save figure in PNG
+            #     fig.savefig(datetime.datetime.now().strftime('imageq-%Y_%m_%d_%H_%M_%S')+'.png',bbox_inches='tight',)
 
             elif event.key=='ctrl+v':# paste clipboard image
                 import win32clipboard # win32clipboard is included in the pywin32 package.
@@ -962,13 +1289,9 @@ def imageq(target_img_list,
                 i = i + 1
 
     # マウス、キーボード操作の関数連携
-    mouse_click_event(fig,ax_list,im_list)
     keyboard_shortcut_sum(fig,ax_list,im_list)
-    mouse_drag_move(fig,ax_list)
-    if cross_cursor:
-        mouse_cross_cursor(fig,axhline_list,axvline_list)
-
     keyboard_shortcut_onlyPNG(val_fig)
+    fig = q_basic(fig=fig,init_xy_pos=[[-0.5, aip.all_img_w_max-0.5],[aip.all_img_h_max-0.5, -0.5]],yud_mode=1)
 
 
     # status barの表示変更
