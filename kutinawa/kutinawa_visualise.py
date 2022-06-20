@@ -155,6 +155,7 @@ def cmap_out_range_color(cmap_name='viridis',over_color='white',under_color='bla
     return out_cmap
 
 
+
 def q_basic(fig,init_xy_pos,yud_mode=0):
 
     local_ax_list = [i for i in fig.get_axes() if i.get_navigate()]
@@ -162,9 +163,20 @@ def q_basic(fig,init_xy_pos,yud_mode=0):
     def mouse_click_event(fig):
         def click_event(event):
             # ダブルクリックで最も大きい画像に合わせて表示領域リセット
-            if event.dblclick:
+            if (event.dblclick) and (event.button==1):
                 local_ax_list[0].set_xlim(init_xy_pos[0][0], init_xy_pos[0][1])
                 local_ax_list[0].set_ylim(init_xy_pos[1][0], init_xy_pos[1][1])
+            elif event.button==3:
+                now_xlim = local_ax_list[0].get_xlim()
+                now_ylim = local_ax_list[0].get_ylim()
+                zoom_out_x = np.abs(now_xlim[0]-now_xlim[1])*0.05
+                zoom_out_y = np.abs(now_ylim[0]-now_ylim[1])*0.05
+                if yud_mode==0:
+                    local_ax_list[0].set_xlim(now_xlim[0]-zoom_out_x, now_xlim[1]+zoom_out_x)
+                    local_ax_list[0].set_ylim(now_ylim[0]-zoom_out_y, now_ylim[1]+zoom_out_y)
+                elif yud_mode==1:
+                    local_ax_list[0].set_xlim(now_xlim[0]-zoom_out_x, now_xlim[1]+zoom_out_x)
+                    local_ax_list[0].set_ylim(now_ylim[0]+zoom_out_y, now_ylim[1]-zoom_out_y)
 
             # クリックした画像を着目画像(current axes)に指定
             for ax_cand in fig.get_axes():
@@ -691,7 +703,6 @@ def imageq(target_img_list,
         ctrl+v                  : コピーした画像を着目画像領域に貼り付け
         """)
 
-    mplstyle.use('fast')
     plt.interactive(False)
     fig = plt.figure()
     val_fig = plt.figure()
@@ -1327,4 +1338,7 @@ def imageq(target_img_list,
     if 'save_png' in kwargs:
         fig.set_size_inches(kwargs['save_png'][1],kwargs['save_png'][0])
         fig.savefig(kwargs['save_png'][2]+'.png',bbox_inches='tight', )
+
+    mplstyle.use('fast')
+
     pass
