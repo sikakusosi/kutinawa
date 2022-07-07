@@ -5,7 +5,7 @@
 (テスト不足とかではない。)
 """
 import numpy as np
-
+from .kutinawa_filter import fast_boxfilter,fast_box_variance_filter
 
 def generate_window2d(hw, type_func):
     """
@@ -74,5 +74,22 @@ def snr_psnr(ref_img,eval_img,maximum_signal_range):
     return snr,psnr
 
 
+def ssim(ref_img, tgt_img, fil_h = 11,fil_w = 11,ref_img_range = np.NaN,C1_gain = 0.01,C2_gain = 0.03):
+    if np.isnan(ref_img_range):
+        ref_img_range = np.nanmax(ref_img)-np.nanmin(ref_img)
+    C1 = (ref_img_range*C1_gain)*(ref_img_range*C1_gain)
+    C2 = (ref_img_range*C2_gain)*(ref_img_range*C2_gain)
 
+    ref_local_mean = fast_boxfilter(ref_img,fil_h=fil_h,fil_w=fil_w)/fil_h/fil_w
+    ref_local_var  = fast_box_variance_filter(ref_img,fil_h=fil_h,fil_w=fil_w)
+    tgt_local_mean = fast_boxfilter(tgt_img,fil_h=fil_h,fil_w=fil_w)/fil_h/fil_w
+    tgt_local_var  = fast_box_variance_filter(tgt_img,fil_h=fil_h,fil_w=fil_w)
+    ref_eva_cov    = fast_boxfilter(ref_img*tgt_img,fil_h=fil_h,fil_w=fil_w)/fil_h/fil_w - (ref_local_mean*tgt_local_mean)
+
+    ssim = ( ( (2*ref_local_mean*tgt_local_mean+C1)*(2*ref_eva_cov+C2) )
+             / ( (ref_local_mean*ref_local_mean+tgt_local_mean*tgt_local_mean+C1)*(ref_local_var+tgt_local_var+C2) ) )
+
+    mssim = np.nanmean(ssim)
+
+    return ssim,mssim
 

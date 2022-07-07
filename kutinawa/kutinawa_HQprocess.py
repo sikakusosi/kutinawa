@@ -171,7 +171,7 @@ def guided_filter(target_img,guide_img,box_h_size,box_v_size,eps=0.01):
     return q
 
 ######################################################################################################################## demosaic
-def demosaic_121(target_img,dummy,raw_mode):
+def demosaic_121(target_img,raw_mode):
     """
     Low quality demosaic.
     R and B are just interpolated with 121 filter, G with 141 filter.

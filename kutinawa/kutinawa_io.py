@@ -193,10 +193,27 @@ def ppm_write(target_img, save_path, min_val, max_val):
 
 def str_to_float_possible(s):  # 正規表現を使って判定を行う
     s2 = s.replace(' ', '')
+    s3 = s2.replace('\t', '')
     p = '[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?'
-    return float(s2) if re.fullmatch(p, s2) else s2
+    return float(s3) if re.fullmatch(p, s3) else s3
 
 def txt_to_float(txt_path,delimiter):
+    """
+    delimiterで区切られたtxtを読み取り、文字列内に数値変換できるものがあればfloat型の数値に変換
+    txtの改行はlistの次元と言うかたちで表現される
+    変換時に書く区切り文字内に存在するスペース、タブは削除
+    例）
+    ・入力txt(delimiter=',')
+    AAA,123,456.7
+    bbb,    67, 89.0, ccc
+    ・出力
+    [['AAA',123.0,456.7]
+     ['bbb',67.0,89.0,'ccc']]
+
+    :param txt_path:
+    :param delimiter:
+    :return:
+    """
     f = open(txt_path, 'r')
     txt_data = f.read()
     txt_2darray = np.array([txt_1line.split(delimiter) for txt_1line in txt_data.splitlines()])
