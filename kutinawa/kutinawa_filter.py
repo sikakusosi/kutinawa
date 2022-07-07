@@ -124,6 +124,15 @@ def variance_filter(target_img,fil):
     temp = ndimage.convolve(target_img, fil, mode='mirror')
     return ndimage.convolve(target_img*target_img, fil, mode='mirror') - (temp*temp)
 
+def covariance_filter(target_img1,target_img2,fil):
+    """
+    局所分散を計算する
+    :param target_img1 ,target_img2: 対象画像
+    :param fil                     : フィルタ、総和が1であること
+    :return                        : 局所共分散画像（計算誤差で0を割ることがある）
+    """
+    return ndimage.convolve(target_img1*target_img2, fil, mode='mirror')-ndimage.convolve(target_img1, fil, mode='mirror')*ndimage.convolve(target_img2, fil, mode='mirror')
+
 def fast_box_variance_filter(target_img,fil_h,fil_w):
     """
     局所分散を計算する

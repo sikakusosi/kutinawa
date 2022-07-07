@@ -130,8 +130,9 @@ def imagesc(img, colormap='viridis', colorbar='on', coloraxis=[0,0], mode='view'
     pass
 
 
-def caxis(cmin,cmax):
-    plt.clim(cmin,cmax)
+def clim(cmin,cmax):
+    for im in plt.gca().get_images():
+        im.set_clim(cmin,cmax)
     plt.gca().figure.canvas.draw()
     pass
 
@@ -143,6 +144,13 @@ def xlim(xmin,xmax):
 def ylim(ymin,ymax):
     plt.gca().set_ylim(ymin,ymax)
     plt.gca().figure.canvas.draw()
+    pass
+
+def close_all():
+    for i in plt.get_fignums():
+        plt.gcf()
+        plt.clf()
+        plt.close()
     pass
 
 def cmap_out_range_color(cmap_name='viridis',over_color='white',under_color='black',bad_color='red'):
@@ -951,11 +959,16 @@ def imageq(target_img_list,
         roi_x_s2=np.clip(roi_x_s,0,np.shape(target_img)[1])
         roi_x_e2=np.clip(roi_x_e,0,np.shape(target_img)[1])
 
-        out_img = np.zeros((roi_y_e-roi_y_s,roi_x_e-roi_x_s))*np.NaN
+
         if (roi_y_s2==roi_y_e2) or (roi_x_s2==roi_x_e2):
             out_img = np.array([[0]])
         else:
-            out_img[roi_y_s2-roi_y_s:(roi_y_s2-roi_y_s)+(roi_y_e2-roi_y_s2),roi_x_s2-roi_x_s:(roi_x_s2-roi_x_s)+(roi_x_e2-roi_x_s2)] = target_img[roi_y_s2:roi_y_e2,roi_x_s2:roi_x_e2]
+            if np.ndim(target_img)==2:
+                out_img = np.zeros((roi_y_e-roi_y_s,roi_x_e-roi_x_s))*np.NaN
+                out_img[roi_y_s2-roi_y_s:(roi_y_s2-roi_y_s)+(roi_y_e2-roi_y_s2),roi_x_s2-roi_x_s:(roi_x_s2-roi_x_s)+(roi_x_e2-roi_x_s2)] = target_img[roi_y_s2:roi_y_e2,roi_x_s2:roi_x_e2]
+            elif np.ndim(target_img)==3:
+                out_img = np.zeros((roi_y_e-roi_y_s,roi_x_e-roi_x_s,np.shape(target_img)[2]))*np.NaN
+                out_img[roi_y_s2-roi_y_s:(roi_y_s2-roi_y_s)+(roi_y_e2-roi_y_s2),roi_x_s2-roi_x_s:(roi_x_s2-roi_x_s)+(roi_x_e2-roi_x_s2),:] = target_img[roi_y_s2:roi_y_e2,roi_x_s2:roi_x_e2,:]
 
         return out_img
 
@@ -972,14 +985,15 @@ def imageq(target_img_list,
                     for num,now_im in enumerate(im_list):
                         temp_state_refnum_clim.append((now_im.get_clim()))
                         if num!=temp_state_refnum_clim[1]:
-                            set_img = im_list[temp_state_refnum_clim[1]].get_array() - now_im.get_array()
-                            now_im.set_array(set_img)
-                            caxis_min,caxis_max = np.min(set_img),np.max(set_img)
-                            now_im.set_clim(caxis_min,caxis_max)
-                            if caxis_min==caxis_max==0:
-                                print('img'+str(temp_state_refnum_clim[1])+'(ref-img) and img' + str(num) + ' are identical.')
-                            elif caxis_min==caxis_max!=0:
-                                print('img'+str(temp_state_refnum_clim[1])+'(ref-img) and img' + str(num) + ' are identical except for the OFFSET component.')
+                            if np.ndim(im_list[temp_state_refnum_clim[1]].get_array()) == np.ndim(now_im.get_array()):
+                                set_img = im_list[temp_state_refnum_clim[1]].get_array() - now_im.get_array()
+                                now_im.set_array(set_img)
+                                caxis_min,caxis_max = np.min(set_img),np.max(set_img)
+                                now_im.set_clim(caxis_min,caxis_max)
+                                if caxis_min==caxis_max==0:
+                                    print('img'+str(temp_state_refnum_clim[1])+'(ref-img) and img' + str(num) + ' are identical.')
+                                elif caxis_min==caxis_max!=0:
+                                    print('img'+str(temp_state_refnum_clim[1])+'(ref-img) and img' + str(num) + ' are identical except for the OFFSET component.')
                     temp_state_refnum_clim[0] = 'diff'
 
                 elif temp_state_refnum_clim[0] == 'diff':
@@ -1146,15 +1160,22 @@ def imageq(target_img_list,
                     temp_img = get_img_in_roi(im_list[ax_num].get_array(),roi_x_s,roi_y_s,roi_x_e,roi_y_e)
 
                     val_ax_list[ax_num].cla()
-                    val_ax_list[ax_num].imshow(temp_img,aspect='auto')
+                    val_ax_list[ax_num].imshow(temp_img,aspect='auto',cmap=colormap)
                     val_ax_list[ax_num].set_xticks(np.arange(0,roi_x_e-roi_x_s))
                     val_ax_list[ax_num].set_xticklabels(xticklabel)
                     val_ax_list[ax_num].set_yticks(np.arange(0,roi_y_e-roi_y_s))
                     val_ax_list[ax_num].set_yticklabels(yticklabel)
                     ys, xs = np.meshgrid(range(temp_img.shape[0]), range(temp_img.shape[1]), indexing='ij')
-                    for (xi, yi, val) in zip(xs.flatten(), ys.flatten(), temp_img.flatten()):
-                        val_ax_list[ax_num].text(xi, yi, '{0:.3f}'.format(val),
-                                                 horizontalalignment='center', verticalalignment='center', color='brown',fontweight='bold')
+
+                    if np.ndim(temp_img)==2:
+                        for (xi, yi, val) in zip(xs.flatten(), ys.flatten(), temp_img.flatten()):
+                            val_ax_list[ax_num].text(xi, yi, '{0:.3f}'.format(val),horizontalalignment='center', verticalalignment='center', color='#ff21cb',fontweight='bold')
+                    elif np.ndim(temp_img)==3:
+                        for (xi, yi) in zip(xs.flatten(), ys.flatten()):
+                            val_ax_list[ax_num].text(xi, yi-0.25, '{0:.3f}'.format(temp_img[yi,xi,0]),horizontalalignment='center', verticalalignment='center', color='red',fontweight='bold')
+                            val_ax_list[ax_num].text(xi, yi, '{0:.3f}'.format(temp_img[yi,xi,1]),horizontalalignment='center', verticalalignment='center', color='green',fontweight='bold')
+                            val_ax_list[ax_num].text(xi, yi+0.25, '{0:.3f}'.format(temp_img[yi,xi,2]),horizontalalignment='center', verticalalignment='center', color='blue',fontweight='bold')
+
 
                 val_fig.suptitle('x='+str(roi_x_s)+'~'+str(roi_x_e)+', y='+str(roi_y_s)+'~'+str(roi_y_e)
                                  +'\n(Values are rounded to three decimal places.)')
@@ -1245,13 +1266,19 @@ def imageq(target_img_list,
     # 一つのsubplotの描画セット
     def imshow_block(ax,im,im_index,target_img,caxis_min,caxis_max,cmap):
 
+        flag_1dim_img = True
         if np.ndim(target_img) == 1:
             print("imageq-Warning: Drawing is not possible because a 1-dimensional data has been input.")
         elif np.ndim(target_img) == 2:
             pass
         elif np.ndim(target_img) == 3:
-            print("imageq-Warning: Value range limited to 0-255 (uint8) due to 3-channel image input.")
-            target_img = target_img.astype(np.uint8)
+            # flag_1dim_img = False
+            if target_img.dtype in ['int16','int32','int64','uint16','uint32','uint64','float16','float32','float64']:
+                print("imageq-Warning: Value range normalized to 0-1(float64) due to 3-dim image input.")
+                target_img = target_img.astype('float64')
+                min_val = np.nanmin(target_img)
+                max_val = np.nanmax(target_img)
+                target_img = (target_img-min_val)/(max_val-min_val)
         else:
             print("imageq-Warning: Drawing is not possible because a 4-dimensional data has been input.")
 
@@ -1263,7 +1290,7 @@ def imageq(target_img_list,
         ax.tick_params(labelbottom=False,labelleft=False,labelright=False,labeltop=False)
         ax.tick_params(bottom=False,left=False,right=False,top=False)
 
-        if colorbar:# colorbar表示
+        if colorbar and flag_1dim_img:# colorbar表示
             divider = make_axes_locatable(ax)
             ax_cb = divider.new_horizontal(size="5%", pad=0.075)
             ax.figure.add_axes(ax_cb)
