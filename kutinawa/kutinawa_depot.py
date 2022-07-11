@@ -93,3 +93,27 @@ def ssim(ref_img, tgt_img, fil_h = 11,fil_w = 11,ref_img_range = np.NaN,C1_gain 
 
     return ssim,mssim
 
+def bayer_RB_G_merge(target_RB,target_G,bayer_mode='RGGB'):
+    out_img = np.zeros_like(target_RB)
+    if bayer_mode=='RGGB':
+        out_img[0::2, 0::2] = target_RB[0::2, 0::2]
+        out_img[0::2, 1::2] = target_G[0::2, 1::2]
+        out_img[1::2, 0::2] = target_G[1::2, 0::2]
+        out_img[1::2, 1::2] = target_RB[1::2, 1::2]
+    elif bayer_mode=='GRBG':
+        out_img[0::2, 0::2] = target_G[0::2, 0::2]
+        out_img[0::2, 1::2] = target_RB[0::2, 1::2]
+        out_img[1::2, 0::2] = target_RB[1::2, 0::2]
+        out_img[1::2, 1::2] = target_G[1::2, 1::2]
+    elif bayer_mode=='GBRG':
+        out_img[0::2, 0::2] = target_G[0::2, 0::2]
+        out_img[0::2, 1::2] = target_RB[0::2, 1::2]
+        out_img[1::2, 0::2] = target_RB[1::2, 0::2]
+        out_img[1::2, 1::2] = target_G[1::2, 1::2]
+    elif bayer_mode=='BGGR':
+        out_img[0::2, 0::2] = target_RB[0::2, 0::2]
+        out_img[0::2, 1::2] = target_G[0::2, 1::2]
+        out_img[1::2, 0::2] = target_G[1::2, 0::2]
+        out_img[1::2, 1::2] = target_RB[1::2, 1::2]
+
+    return out_img
