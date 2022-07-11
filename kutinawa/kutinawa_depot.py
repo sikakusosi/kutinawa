@@ -117,3 +117,66 @@ def bayer_RB_G_merge(target_RB,target_G,bayer_mode='RGGB'):
         out_img[1::2, 1::2] = target_RB[1::2, 1::2]
 
     return out_img
+
+
+def rgb_to_bayer(target_rgb,bayer_mode='RGGB'):
+    out_bayer = np.zeros((np.shape(target_rgb)[0], np.shape(target_rgb)[1]))
+    if bayer_mode=='RGGB':
+        out_bayer[0::2, 0::2] = target_rgb[0::2, 0::2, 0]
+        out_bayer[0::2, 1::2] = target_rgb[0::2, 1::2, 1]
+        out_bayer[1::2, 0::2] = target_rgb[1::2, 0::2, 1]
+        out_bayer[1::2, 1::2] = target_rgb[1::2, 1::2, 2]
+    elif bayer_mode=='GRBG':
+        out_bayer[0::2, 0::2] = target_rgb[0::2, 0::2, 1]
+        out_bayer[0::2, 1::2] = target_rgb[0::2, 1::2, 0]
+        out_bayer[1::2, 0::2] = target_rgb[1::2, 0::2, 2]
+        out_bayer[1::2, 1::2] = target_rgb[1::2, 1::2, 1]
+    elif bayer_mode=='GBRG':
+        out_bayer[0::2, 0::2] = target_rgb[0::2, 0::2, 1]
+        out_bayer[0::2, 1::2] = target_rgb[0::2, 1::2, 2]
+        out_bayer[1::2, 0::2] = target_rgb[1::2, 0::2, 0]
+        out_bayer[1::2, 1::2] = target_rgb[1::2, 1::2, 1]
+    elif bayer_mode=='BGGR':
+        out_bayer[0::2, 0::2] = target_rgb[0::2, 0::2, 2]
+        out_bayer[0::2, 1::2] = target_rgb[0::2, 1::2, 1]
+        out_bayer[1::2, 0::2] = target_rgb[1::2, 0::2, 1]
+        out_bayer[1::2, 1::2] = target_rgb[1::2, 1::2,0]
+
+    return out_bayer
+
+
+def raw_split(target_raw, raw_mode='RGGB', fill_num=None):
+    ############################################### raw_modeの整形
+    if raw_mode in ['bayer','Bayer','BAYER']:
+        raw_mode = 'RG;GB;'
+    elif raw_mode in ['quad_bayer','Quad_Bayer']:
+        raw_mode = 'RRGG;RRGG;GGBB;GGBB;'
+
+    raw_mode = raw_mode.replace(' ','')
+    if raw_mode[-1]==';':
+        raw_mode = raw_mode[0:-1]
+    raw_mode_list = raw_mode.split(';')
+    split_y = len(raw_mode_list)
+    split_x = len(raw_mode_list[0])
+
+    ############################################## 出力の調整
+    if fill_num is None:
+        out_img_list = [np.zeros((np.shape(target_raw)[0]//split_y, np.shape(target_raw)[1]//split_x)) for i in np.arange(split_y*split_x)]
+        for yyy in np.arange(split_y):
+            for xxx in np.arange(split_x):
+                out_img_list[yyy*split_x+xxx] = target_raw[yyy::split_y,xxx::split_x]
+    else:
+        raster_raw_mode = []
+        for raw_mode_y in raw_mode_list:
+            for raw_mode_x in raw_mode_y:
+                raster_raw_mode.append(raw_mode_x)
+        unique_symbol = list(dict.fromkeys(raster_raw_mode))
+        unique_symbol_dict = dict(zip(unique_symbol, np.arange(len(unique_symbol))))
+
+        out_img_list = [np.ones((np.shape(target_raw)[0], np.shape(target_raw)[1]))*fill_num for i in np.arange(len(unique_symbol))]
+        for yyy in np.arange(split_y):
+            for xxx in np.arange(split_x):
+                out_img_list[unique_symbol_dict[raster_raw_mode[yyy*split_x+xxx]]][yyy::split_y,xxx::split_x] = target_raw[yyy::split_y,xxx::split_x]
+
+    return out_img_list
+

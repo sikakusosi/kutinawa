@@ -4,16 +4,6 @@
 import numpy as np
 
 
-def rgb_to_bayer(target_rgb):
-    out_bayer = np.zeros((np.shape(target_rgb)[0], np.shape(target_rgb)[1]))
-    out_bayer[0::2, 0::2] = target_rgb[0::2, 0::2, 0]
-    out_bayer[0::2, 1::2] = target_rgb[0::2, 1::2, 1]
-    out_bayer[1::2, 0::2] = target_rgb[1::2, 0::2, 1]
-    out_bayer[1::2, 1::2] = target_rgb[1::2, 1::2, 2]
-
-    return out_bayer
-
-
 def generate_random_array(size_taple,seed=123):
     np.random.seed(123)
     return np.random.random_sample(size_taple)
