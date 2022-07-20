@@ -7,7 +7,7 @@
 import numpy as np
 from scipy import ndimage
 from .kutinawa_filter import image_stack
-
+import random
 
 def nearly_image(tgt_img,rh,rw):
     """
@@ -43,3 +43,16 @@ def order_img(tgt_img,rh,rw):
     for i in np.arange((rh*2+1)*(rw*2+1)):
         order_img = order_img + temp_img[:,:,i]*i
     return order_img
+
+
+def generate_alone_defect_pix_map__low_precision(img_size, non_overlap_area, defect_pix_per=0.01, random_seed=123):
+    random.seed(random_seed)
+    target_array = np.arange(img_size[0]*img_size[1]).tolist()
+    random.shuffle(target_array)
+    target_2darray = np.reshape(np.array(target_array),img_size)
+    defect_map_pre = target_2darray<np.floor(img_size[0]*img_size[1]*defect_pix_per)
+    defect_map_del = defect_map_pre*(ndimage.convolve(defect_map_pre.astype(int),non_overlap_area)<=1)
+    return defect_map_del
+
+
+
