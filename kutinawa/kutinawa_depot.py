@@ -145,7 +145,7 @@ def rgb_to_bayer(target_rgb,bayer_mode='RGGB'):
     return out_bayer
 
 
-def raw_split(target_raw, raw_mode='RGGB', fill_num=None):
+def raw_split(target_raw, raw_mode='RG;GB;', fill_num=None):
     ############################################### raw_modeの整形
     if raw_mode in ['bayer','Bayer','BAYER']:
         raw_mode = 'RG;GB;'
@@ -180,3 +180,9 @@ def raw_split(target_raw, raw_mode='RGGB', fill_num=None):
 
     return out_img_list
 
+
+def index_map_merge(merge_target_img_list,index_map):
+    merged_img = merge_target_img_list[0]
+    for i in np.arange(1,len(merge_target_img_list)):
+        merged_img[index_map==i] = merge_target_img_list[i][index_map==i]
+    return merged_img
