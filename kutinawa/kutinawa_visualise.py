@@ -153,6 +153,9 @@ def close_all():
         plt.close()
     pass
 
+def tolist_0dim(target_array):
+    return [i for i in target_array]
+
 def cmap_out_range_color(cmap_name='viridis',over_color='white',under_color='black',bad_color='red'):
     cm = pylab.cm.get_cmap(cmap_name)
     colors = cm.colors
@@ -161,8 +164,6 @@ def cmap_out_range_color(cmap_name='viridis',over_color='white',under_color='bla
     out_cmap.set_under(under_color)
     out_cmap.set_bad(bad_color)
     return out_cmap
-
-
 
 def q_basic(fig,init_xy_pos,yud_mode=0):
 
@@ -697,7 +698,8 @@ def imageq(target_img_list,
          Double click            : 画像全体表示
          Left click on the image : クリックした画像を”着目画像”に指定
         ------------ clim 自動調整 ---------------------------------------------------------------------------------------
-         shift + a               : ”着目画像”の現在描画されている領域でclimを自動スケーリング
+         shift + a               : ”着目画像”のみ現在描画されている領域でclimを自動スケーリング
+         shift + e               : 各画像それぞれ現在描画されている領域でclimを自動スケーリング
          shift + w               : 全画像の最大-最小を用いて全画像のclimを設定
          shift + s               : ”着目画像”のclimを他の画像にも同期
         ------------ clim 手動調整 ---------------------------------------------------------------------------------------
@@ -707,7 +709,7 @@ def imageq(target_img_list,
          ※(←,→,↑,↓(+ctrl))       　(+ ctrl)時は←,→,↑,↓の操作の変動量が5%となる
         ------------ 画像比較 -------------------------------------------------------------------------------------------- 
          shift + d               : ”着目画像”と他の画像の差分を表示
-         shift + e               : ”着目画像”と他の画像のSNR,PSNR,MSSIMをコンソールに表示、SSIMを別ウィンドウで表示
+         :                       : ”着目画像”と他の画像のSNR,PSNR,MSSIMをコンソールに表示、SSIMを別ウィンドウで表示
          F1 ~  F12               : 表示画像の切り替え(mode='layer'時のみ), F1=image0、F2=image1、…と対応している
         ------------ 画像全体に対する解析 ---------------------------------------------------------------------------------- 
          shift + h               : 表示範囲内(shift + h)の画素値ヒストグラム表示 
@@ -871,6 +873,13 @@ def imageq(target_img_list,
             for num,now_im in enumerate(im_list):
                 now_im.set_clim(aip.all_img_min,aip.all_img_max)
 
+        elif mode=='each':
+            for ax_num,ax_cand in enumerate(ax_list):
+                int_x = np.clip((np.array(ax_cand.get_xlim()) + 0.5).astype(int),0,None)
+                int_y = np.clip((np.array(ax_cand.get_ylim()) + 0.5).astype(int),0,None)
+                temp = im_list[ax_num].get_array()[int_y[1]:int_y[0],int_x[0]:int_x[1]]
+                im_list[ax_num].set_clim(np.min(temp),np.max(temp))
+
         pass
 
     def make_lineprofile(ax_list,im_list,mode,xdata=None,ydata=None,roi_list=None):
@@ -1006,7 +1015,7 @@ def imageq(target_img_list,
                     temp_state_refnum_clim[1] = 0
                     del temp_state_refnum_clim[2:]
 
-            elif event.key=='E':# image quality Evaluation
+            elif event.key==':':# image quality Evaluation
                 ref_ax_num = 0
                 for ax_num,ax_cand in enumerate(ax_list):
                     if plt.gca() == ax_cand:
@@ -1050,9 +1059,9 @@ def imageq(target_img_list,
                             snr,psnr,mssim = np.Inf,np.Inf,1
 
                         title_str = ('Ref-> img'+str(ref_ax_num)+'  :Evaluate-> img'+str(ax_num)+
-                                     '\nSNR   :' + '{0:.5f}'.format(snr)   + '(dB)' +
-                                     '\nPSNR  :' + '{0:.5f}'.format(psnr)  + '(dB)' +
-                                     '\nMSSIM :' + '{0:.5f}'.format(mssim)  +
+                                     '\nSNR   : ' + '{0:.5f}'.format(snr)   + '(dB)' +
+                                     '\nPSNR  : ' + '{0:.5f}'.format(psnr)  + '(dB)' +
+                                     '\nMSSIM : ' + '{0:.5f}'.format(mssim)  +
                                      '\n')
                         print(title_str)
 
@@ -1066,6 +1075,9 @@ def imageq(target_img_list,
                 update_clim(ax_list,im_list,mode='sync')
             elif event.key=='W':# set clim(<all image min>, <all image max>)
                 update_clim(ax_list,im_list,mode='whole')
+            elif event.key=='E':# set clim(<all image min>, <all image max>)
+                update_clim(ax_list,im_list,mode='each')
+
 
             ################################## update clim with MANUAL adjustments ##################################
             elif event.key=='left':
@@ -1142,11 +1154,11 @@ def imageq(target_img_list,
                 for ax_num,ax_cand in enumerate(ax_list):
                     temp_img = im_list[ax_num].get_array()[roi_y_s:roi_y_e, roi_x_s:roi_x_e]
                     print( '--- img'+str(ax_num)+' x='+str(roi_x_s)+'~'+str(roi_x_e)+', y='+str(roi_y_s)+'~'+str(roi_y_e)+ ' ---\n'
-                           +'mean     :'+str(np.nanmean(temp_img))   +'\n'
-                           +'max      :'+str(np.nanmax(temp_img))    +'\n'
-                           +'min      :'+str(np.nanmin(temp_img))    +'\n'
-                           +'median   :'+str(np.nanmedian(temp_img)) +'\n'
-                           +'std      :'+str(np.nanstd(temp_img))
+                           +'mean     : '+str(np.nanmean(temp_img))   +'\n'
+                           +'max      : '+str(np.nanmax(temp_img))    +'\n'
+                           +'min      : '+str(np.nanmin(temp_img))    +'\n'
+                           +'median   : '+str(np.nanmedian(temp_img)) +'\n'
+                           +'std      : '+str(np.nanstd(temp_img))
                            )
 
             elif event.key=='m':
@@ -1273,7 +1285,7 @@ def imageq(target_img_list,
             pass
         elif np.ndim(target_img) == 3:
             # flag_1dim_img = False
-            if target_img.dtype in ['int16','int32','int64','uint16','uint32','uint64','float16','float32','float64']:
+            if target_img.dtype in ['int16','int32','int64','uint16','uint32','uint64','float16','float32','float64','bool']:
                 print("imageq-Warning: Value range normalized to 0-1(float64) due to 3-dim image input.")
                 target_img = target_img.astype('float64')
                 min_val = np.nanmin(target_img)
