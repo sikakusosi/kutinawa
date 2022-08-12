@@ -182,7 +182,7 @@ def raw_split(target_raw, raw_mode='RG;GB;', fill_num=None):
 
 
 def index_map_merge(merge_target_img_list,index_map):
-    merged_img = merge_target_img_list[0]
+    merged_img = merge_target_img_list[0].copy()
     for i in np.arange(1,len(merge_target_img_list)):
         merged_img[index_map==i] = merge_target_img_list[i][index_map==i]
     return merged_img
