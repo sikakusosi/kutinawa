@@ -1,6 +1,8 @@
 """
 表示系の関数群.
 """
+import itertools
+
 import datetime
 import numpy as np
 
@@ -629,7 +631,6 @@ def histq(input_list,
 
     pass
 
-
 def imageq(target_img_list,
            coloraxis   = (0,0),
            colormap    = 'viridis',
@@ -981,39 +982,58 @@ def imageq(target_img_list,
 
         return out_img
 
+
+
     # keyboard_shortcut関数
     temp_state_refnum_clim = ["normal",0,]
+    refimg_num = 0
     def keyboard_shortcut_sum(fig, ax_list, im_list):
         def keyboard_shortcut(event):
             ################################## image diffarence ##################################
-            if event.key=='D':# diff
+            if event.key in ['D', '+', '*', '/']:
                 if temp_state_refnum_clim[0] == 'normal':
                     for ax_num,ax_cand in enumerate(ax_list):
                         if plt.gca() == ax_cand:
-                            temp_state_refnum_clim[1] = ax_num
+                            temp_state_refnum_clim[1] = ax_num #着目画像番号を取得
+
                     for num,now_im in enumerate(im_list):
                         temp_state_refnum_clim.append((now_im.get_clim()))
                         if num!=temp_state_refnum_clim[1]:
                             if np.ndim(im_list[temp_state_refnum_clim[1]].get_array()) == np.ndim(now_im.get_array()):
-                                set_img = im_list[temp_state_refnum_clim[1]].get_array() - now_im.get_array()
+                                if event.key == 'D':
+                                    set_img = im_list[temp_state_refnum_clim[1]].get_array() - now_im.get_array()
+                                    temp_state_refnum_clim[0] = 'D'
+                                elif event.key == '+':
+                                    set_img = im_list[temp_state_refnum_clim[1]].get_array() + now_im.get_array()
+                                    temp_state_refnum_clim[0] = '+'
+                                elif event.key == '*':
+                                    set_img = im_list[temp_state_refnum_clim[1]].get_array() * now_im.get_array()
+                                    temp_state_refnum_clim[0] = '*'
+                                elif event.key == '/':
+                                    set_img = im_list[temp_state_refnum_clim[1]].get_array() / now_im.get_array()
+                                    temp_state_refnum_clim[0] = '/'
+
                                 now_im.set_array(set_img)
                                 caxis_min,caxis_max = np.min(set_img),np.max(set_img)
                                 now_im.set_clim(caxis_min,caxis_max)
-                                if caxis_min==caxis_max==0:
+                                if caxis_min==caxis_max==0 and event.key == 'D':
                                     print('img'+str(temp_state_refnum_clim[1])+'(ref-img) and img' + str(num) + ' are identical.')
-                                elif caxis_min==caxis_max!=0:
+                                elif caxis_min==caxis_max!=0 and event.key == 'D':
                                     print('img'+str(temp_state_refnum_clim[1])+'(ref-img) and img' + str(num) + ' are identical except for the OFFSET component.')
-                    temp_state_refnum_clim[0] = 'diff'
+                else:
+                    if temp_state_refnum_clim[0] == event.key:
+                        for num,now_im in enumerate(im_list):
+                            if int(temp_state_refnum_clim[1])!=num:
+                                now_im.set_array(list(itertools.chain.from_iterable(target_img_list))[num])
+                                caxis_min,caxis_max = temp_state_refnum_clim[int(num+2)]
+                                now_im.set_clim(float(caxis_min),float(caxis_max))
+                        temp_state_refnum_clim[0] = 'normal'
+                        temp_state_refnum_clim[1] = 0
+                        del temp_state_refnum_clim[2:]
+                    else:
+                        temp = {'D':'Image-diff','+':'Image-add','*':'Image-mul','/':'Image-ratio'}
+                        print('Since you have already done the '+temp[temp_state_refnum_clim[0]]+', you cannot do another operation in addition.\n Please press the "'+temp_state_refnum_clim[0]+'"key to return the image to the state in which you are not performing the operation before performing the operation.')
 
-                elif temp_state_refnum_clim[0] == 'diff':
-                    for num,now_im in enumerate(im_list):
-                        if int(temp_state_refnum_clim[1])!=num:
-                            now_im.set_array(im_list[int(temp_state_refnum_clim[1])].get_array() - now_im.get_array())
-                            caxis_min,caxis_max = temp_state_refnum_clim[int(num+2)]
-                            now_im.set_clim(float(caxis_min),float(caxis_max))
-                    temp_state_refnum_clim[0] = 'normal'
-                    temp_state_refnum_clim[1] = 0
-                    del temp_state_refnum_clim[2:]
 
             elif event.key==':':# image quality Evaluation
                 ref_ax_num = 0
