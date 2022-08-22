@@ -631,6 +631,8 @@ def histq(input_list,
 
     pass
 
+
+
 def imageq(target_img_list,
            coloraxis   = (0,0),
            colormap    = 'viridis',
@@ -1182,11 +1184,25 @@ def imageq(target_img_list,
                            )
 
             elif event.key=='m':
+                val_fig_roi_list = []
+                def val_fig_mouse_click_event(fig):
+                    def click_event(event):
+                        # クリックした画素を赤枠で囲む
+                        if event.inaxes:
+                            mouse_x, mouse_y = int(event.xdata + 0.5)-0.5, int(event.ydata + 0.5)-0.5
+                            for ax_num,ax_cand in enumerate(ax_list):
+                                val_fig_roi_list[ax_num].set_xy((mouse_x,mouse_y))
+                        fig.canvas.draw()
+                    fig.canvas.mpl_connect('button_press_event',click_event)
+                    pass
+
                 roi_x_s,roi_y_s = roi_list[0].get_xy()
                 roi_x_s,roi_y_s = int(roi_x_s+0.5),int(roi_y_s+0.5)
                 roi_x_e,roi_y_e = int(roi_x_s+roi_list[0].get_width()),int(roi_y_s+roi_list[0].get_height())
                 xticklabel = [str(i) for i in np.arange(roi_x_s,roi_x_e)]
                 yticklabel = [str(i) for i in np.arange(roi_y_s,roi_y_e)]
+
+                v_pos = ['bottom','top']
 
                 for ax_num,ax_cand in enumerate(ax_list):
                     temp_img = get_img_in_roi(im_list[ax_num].get_array(),roi_x_s,roi_y_s,roi_x_e,roi_y_e)
@@ -1199,19 +1215,22 @@ def imageq(target_img_list,
                     val_ax_list[ax_num].set_yticklabels(yticklabel)
                     ys, xs = np.meshgrid(range(temp_img.shape[0]), range(temp_img.shape[1]), indexing='ij')
 
+                    val_fig_roi_list.append(patches.Rectangle(xy=(-0.5, -0.5), width=1, height=1, ec='red', fill=False))
+                    val_ax_list[ax_num].add_patch(val_fig_roi_list[-1])
+
                     if np.ndim(temp_img)==2:
                         for (xi, yi, val) in zip(xs.flatten(), ys.flatten(), temp_img.flatten()):
-                            val_ax_list[ax_num].text(xi, yi, '{0:.3f}'.format(val),horizontalalignment='center', verticalalignment='center', color='#ff21cb',fontweight='bold')
+                            val_ax_list[ax_num].text(xi, yi, '{0:.3f}'.format(val),horizontalalignment='center', verticalalignment=v_pos[xi%2], color='#ff21cb',fontweight='bold')
+
                     elif np.ndim(temp_img)==3:
                         for (xi, yi) in zip(xs.flatten(), ys.flatten()):
                             val_ax_list[ax_num].text(xi, yi-0.25, '{0:.3f}'.format(temp_img[yi,xi,0]),horizontalalignment='center', verticalalignment='center', color='red',fontweight='bold')
                             val_ax_list[ax_num].text(xi, yi, '{0:.3f}'.format(temp_img[yi,xi,1]),horizontalalignment='center', verticalalignment='center', color='green',fontweight='bold')
                             val_ax_list[ax_num].text(xi, yi+0.25, '{0:.3f}'.format(temp_img[yi,xi,2]),horizontalalignment='center', verticalalignment='center', color='blue',fontweight='bold')
 
-
-                val_fig.suptitle('x='+str(roi_x_s)+'~'+str(roi_x_e)+', y='+str(roi_y_s)+'~'+str(roi_y_e)
-                                 +'\n(Values are rounded to three decimal places.)')
+                val_fig.suptitle('x='+str(roi_x_s)+'~'+str(roi_x_e)+', y='+str(roi_y_s)+'~'+str(roi_y_e)+'\n(Values are rounded to three decimal places.)')
                 val_fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)
+                val_fig_mouse_click_event(val_fig)
                 val_fig.canvas.draw()
                 val_fig.show()
 
