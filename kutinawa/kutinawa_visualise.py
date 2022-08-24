@@ -1370,6 +1370,8 @@ def imageq(target_img_list,
                     ax_list.append(fig.add_subplot(aip.sub_y_size,aip.sub_x_size, aip.sub_x_size*y+x+1 ,sharex=ax_list[0],sharey=ax_list[0]))
                     val_ax_list.append(val_fig.add_subplot(aip.sub_y_size,aip.sub_x_size, aip.sub_x_size*y+x+1 ,sharex=val_ax_list[0],sharey=val_ax_list[0]))
 
+                if target_img_list[y][x].dtype == 'bool':
+                    target_img_list[y][x] = target_img_list[y][x].astype(int)
                 imshow_block(ax_list[-1],im_list,-1,target_img_list[y][x],caxis[y][x][0],caxis[y][x][1],cmap[y][x])
                 axhline_list.append(ax_list[-1].axhline(y=-0.5,color='pink'))
                 axvline_list.append(ax_list[-1].axvline(x=-0.5,color='pink'))
