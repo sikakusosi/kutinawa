@@ -7,17 +7,105 @@ import csv
 import re
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageSequence, TiffImagePlugin
 
 from .kutinawa_resize import raster_2d_to_1d
 
 ##########################################################　IO系
 def imread(target_img_path):
-    return np.array(Image.open(target_img_path)).astype(float)
+    """
+    画像読み込み関数
+    マルチページtiff対応
+    :param target_img_path:
+    :return:
+    """
+    pillow_img = Image.open(target_img_path)
+    out_img = []
+    for tmp_img in ImageSequence.Iterator(pillow_img):
+        out_img.append(np.array(tmp_img))
+    return out_img
 
-def imwrite(target_img,save_path):
-    Image.fromarray(target_img).save(save_path)
+def imwrite(target_img,save_path,multi_page=False):
+    """
+    画像保存関数
+    マルチページtiffの保存可能、その場合はtarget_imgの0次元目に各画像のindexが来るようにする
+    例：5枚の画像(幅1280x高960)を保存する場合はtarget_imgは(5,960,1280)の配列になるようにする
+    :param target_img:
+    :param save_path:
+    :param multi_page:
+    :return:
+    """
+    if not(multi_page):
+        Image.fromarray(target_img).save(save_path)
+    else:
+        multi_page_list = [Image.fromarray(ti) for ti in target_img]
+        multi_page_list[0].save(save_path, compression="raw", save_all=True, append_images=multi_page_list[1:])
     pass
+
+
+def tiff_tag_add(tiff_path,IMAGEWIDTH='',IMAGELENGTH='',BITSPERSAMPLE='',COMPRESSION='',PHOTOMETRIC_INTERPRETATION='',
+                 FILLORDER='',IMAGEDESCRIPTION='',STRIPOFFSETS='',SAMPLESPERPIXEL='',ROWSPERSTRIP='',
+                 STRIPBYTECOUNTS='',X_RESOLUTION='',Y_RESOLUTION='',PLANAR_CONFIGURATION='',RESOLUTION_UNIT='',
+                 TRANSFERFUNCTION='',SOFTWARE='',DATE_TIME='',ARTIST='',PREDICTOR='',COLORMAP='',
+                 TILEWIDTH='',TILELENGTH='',TILEOFFSETS='',TILEBYTECOUNTS='',SUBIFD='',EXTRASAMPLES='',
+                 SAMPLEFORMAT='',JPEGTABLES='',YCBCRSUBSAMPLING='',REFERENCEBLACKWHITE='',COPYRIGHT=''):
+    target_tiff = Image.open(tiff_path)
+    info = TiffImagePlugin.ImageFileDirectory()
+    info[256]  = IMAGEWIDTH
+    info[257]  = IMAGELENGTH
+    info[258]  = BITSPERSAMPLE
+    info[259]  = COMPRESSION
+    info[262]  = PHOTOMETRIC_INTERPRETATION
+    info[266]  = FILLORDER
+    info[270]  = IMAGEDESCRIPTION
+    info[273]  = STRIPOFFSETS
+    info[277]  = SAMPLESPERPIXEL
+    info[278]  = ROWSPERSTRIP
+    info[279]  = STRIPBYTECOUNTS
+    info[282]  = X_RESOLUTION
+    info[283]  = Y_RESOLUTION
+    info[284]  = PLANAR_CONFIGURATION
+    info[296]  = RESOLUTION_UNIT
+    info[301]  = TRANSFERFUNCTION
+    info[305]  = SOFTWARE
+    info[306]  = DATE_TIME
+    info[315]  = ARTIST
+    info[317]  = PREDICTOR
+    info[320]  = COLORMAP
+    info[322]  = TILEWIDTH
+    info[323]  = TILELENGTH
+    info[324]  = TILEOFFSETS
+    info[325]  = TILEBYTECOUNTS
+    info[330]  = SUBIFD
+    info[338]  = EXTRASAMPLES
+    info[339]  = SAMPLEFORMAT
+    info[347]  = JPEGTABLES
+    info[530]  = YCBCRSUBSAMPLING
+    info[532]  = REFERENCEBLACKWHITE
+    info[33432]= COPYRIGHT
+    target_tiff.save(tiff_path, tiffinfo=info)
+    pass
+
+
+def imwrite_tifftag(target_img,save_path,multi_page=False,IMAGEDESCRIPTION='',SOFTWARE=''):
+    """
+    画像保存関数
+    マルチページtiffの保存可能、その場合はtarget_imgの0次元目に各画像のindexが来るようにする
+    例：5枚の画像(幅1280x高960)を保存する場合はtarget_imgは(5,960,1280)の配列になるようにする
+    :param target_img:
+    :param save_path:
+    :param multi_page:
+    :return:
+    """
+    if not(multi_page):
+        Image.fromarray(target_img).save(save_path)
+    else:
+        multi_page_list = [Image.fromarray(ti) for ti in target_img]
+        multi_page_list[0].save(save_path, compression="raw", save_all=True, append_images=multi_page_list[1:])
+
+    tiff_tag_add(save_path,IMAGEDESCRIPTION='',SOFTWARE='')
+    pass
+
 
 def imread_raw(target_img_path, height, width, mode=np.uint16):
     """
