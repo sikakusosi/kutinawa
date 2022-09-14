@@ -186,3 +186,33 @@ def index_map_merge(merge_target_img_list,index_map):
     for i in np.arange(1,len(merge_target_img_list)):
         merged_img[index_map==i] = merge_target_img_list[i][index_map==i]
     return merged_img
+
+
+def image_power_spectrum2d(target_img):
+    fft_data = np.fft.fft2(target_img)
+    shifted_fft_data = np.fft.fftshift(fft_data)
+    power_spectrum2d = np.abs(shifted_fft_data)*np.abs(shifted_fft_data)
+    return power_spectrum2d
+
+def radial_profile(target_img, center=None):
+    y_array, x_array = np.indices(target_img.shape)
+    if not center:
+        center = np.array([(x_array.max()-x_array.min())/2.0, (y_array.max()-y_array.min())/2.0])
+    r_array = np.hypot(x_array - center[0], y_array - center[1])
+
+    ind = np.argsort(r_array.flat)
+    r_sorted = r_array.flat[ind]
+    i_sorted = target_img.flat[ind]
+    r_int = r_sorted.astype(int)
+    deltar = r_int[1:] - r_int[:-1]  # Assumes all radii represented
+    rind = np.where(deltar)[0]       # location of changed radius
+    nr = rind[1:] - rind[:-1]        # number of radius bin
+    csim = np.cumsum(i_sorted, dtype=float)
+    tbin = csim[rind[1:]] - csim[rind[:-1]]
+    radial_prof = tbin / nr
+    return radial_prof
+
+def image_power_spectrum1d(target_img):
+    power_spectrum1d = radial_profile(image_power_spectrum2d(target_img))
+    return power_spectrum1d
+
