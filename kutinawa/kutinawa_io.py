@@ -23,6 +23,7 @@ def imread(target_img_path):
     out_img = []
     for tmp_img in ImageSequence.Iterator(pillow_img):
         out_img.append(np.array(tmp_img))
+    out_img = np.squeeze(np.array(out_img))
     return out_img
 
 def imwrite(target_img,save_path,multi_page=False):
