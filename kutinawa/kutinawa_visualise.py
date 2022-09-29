@@ -1275,6 +1275,20 @@ def imageq(target_img_list,
                 val_fig.canvas.draw()
                 val_fig.show()
 
+            elif event.key=='@':
+                img_xlim = ax_list[0].get_xlim()
+                img_ylim = ax_list[0].get_ylim()
+                img_xlim = [int(img_xlim[0]+ 0.5), int(img_xlim[1]+ 0.5)]
+                img_ylim = [int(img_ylim[0]+ 0.5), int(img_ylim[1]+ 0.5)]
+                # print('view_area -> [' + str(img_ylim[1]) + ':' + str(img_ylim[0]) + ',' + str(img_xlim[0]) + ':' + str(img_xlim[1]) + ']')
+                print('view_area -> ((' + str(img_ylim[1]) + ',' + str(img_ylim[0]) + '),(' + str(img_xlim[0]) + ',' + str(img_xlim[1]) + '))')
+                if event.inaxes:
+                    mouse_x, mouse_y = int(event.xdata + 0.5), int(event.ydata + 0.5)
+                    print('mouse_pos -> [' + str(mouse_y) + ',' + str(mouse_x) + ']')
+                else:
+                    print('mouse_pos -> None')
+
+
             ################################## file IO ##################################
             # elif event.key=='P':# save figure in PNG
             #     fig.savefig(datetime.datetime.now().strftime('imageq-%Y_%m_%d_%H_%M_%S')+'.png',bbox_inches='tight',)
