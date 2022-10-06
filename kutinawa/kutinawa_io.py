@@ -7,7 +7,7 @@ import csv
 import re
 
 import numpy as np
-from PIL import Image, ImageSequence, TiffImagePlugin
+from PIL import Image, ImageSequence, TiffImagePlugin, ExifTags
 
 from .kutinawa_resize import raster_2d_to_1d
 
@@ -43,6 +43,21 @@ def imwrite(target_img,save_path,multi_page=False):
         multi_page_list[0].save(save_path, compression="raw", save_all=True, append_images=multi_page_list[1:])
     pass
 
+def imread_plus_exif(target_img_path):
+    """
+    画像読み込み関数
+    マルチページtiff対応
+    :param target_img_path:
+    :return:
+    """
+    pillow_img = Image.open(target_img_path)
+    exif_dict = pillow_img._getexif()
+    exif = {ExifTags.TAGS.get(exif_key, exif_key): exif_dict[exif_key] for exif_key in exif_dict}
+    out_img = []
+    for tmp_img in ImageSequence.Iterator(pillow_img):
+        out_img.append(np.array(tmp_img))
+    out_img = np.squeeze(np.array(out_img))
+    return out_img,exif
 
 def tiff_tag_add(tiff_path,IMAGEWIDTH='',IMAGELENGTH='',BITSPERSAMPLE='',COMPRESSION='',PHOTOMETRIC_INTERPRETATION='',
                  FILLORDER='',IMAGEDESCRIPTION='',STRIPOFFSETS='',SAMPLESPERPIXEL='',ROWSPERSTRIP='',
