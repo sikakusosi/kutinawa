@@ -26,6 +26,17 @@ def imread(target_img_path):
     out_img = np.squeeze(np.array(out_img))
     return out_img
 
+def multi_imread(target_img_path_list):
+    """
+    複数枚の画像を読み取り、list化して返す
+    :param target_img_path_list: list化された、画像のファイルパス
+    :return: list化された画像、0次元目に画像が格納される
+    """
+    out_img_list = []
+    for target_img_path in target_img_path_list:
+        out_img_list.append(imread(target_img_path))
+    return out_img_list
+
 def imwrite(target_img,save_path,multi_page=False):
     """
     画像保存関数
