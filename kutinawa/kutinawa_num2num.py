@@ -51,6 +51,20 @@ def hex_to_dec(hex):
     blue = ''.join(hex.strip('#')[4:6])
     return (int(red, 16), int(green, 16), int(blue,16))
 
+########################################################################################################################
+def round_decimal_point(target_array, decimal_point):
+    p = np.power(10.0, decimal_point)
+    s = np.copysign(1, target_array)
+    return (s * target_array * p * 2 + 1) // 2 / p * s
+
+def round_effective_digit(target_array,effective_digit):
+    return round_decimal_point(target_array, effective_digit - ((np.log10(np.abs(x))).astype(int) + 1))
+
+def ceil_effective_digit(target_array,effective_digit):
+    decimal_point = effective_digit - ((np.log10(np.abs(x))).astype(int) + 1)
+    p = np.power(10.0, decimal_point)
+    return np.ceil(target_array * p)/p
+
 ######################################################################################################################## 固定小数を使うための丸め関数
 def cast_round(input,bit_comp):
     """
@@ -110,3 +124,4 @@ def cast_evenround(input,bit_comp):
     out_val = np.clip(out_val,minus_val_min,plus_val_max)
 
     return out_val
+
