@@ -61,7 +61,7 @@ def round_effective_digit(target_array,effective_digit):
     return round_decimal_point(target_array, effective_digit - ((np.log10(np.abs(x))).astype(int) + 1))
 
 def ceil_effective_digit(target_array,effective_digit):
-    decimal_point = effective_digit - ((np.log10(np.abs(x))).astype(int) + 1)
+    decimal_point = effective_digit - ((np.log10(np.abs(target_array))).astype(int) + 1)
     p = np.power(10.0, decimal_point)
     return np.ceil(target_array * p)/p
 
@@ -125,3 +125,6 @@ def cast_evenround(input,bit_comp):
 
     return out_val
 
+######################################################################################################################## exif解釈用
+def exif_ShutterSpeedValue_to_denominator(exif_ShutterSpeedValue):
+    return ceil_effective_digit(np.power(2,exif_ShutterSpeedValue),3)
