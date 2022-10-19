@@ -6,7 +6,7 @@
 
 import numpy as np
 from scipy import ndimage
-from .kutinawa_filter import image_stack
+from .kutinawa_filter import image_stack, generate_gaussian_filter, multi_filter
 import random
 
 def nearly_image(tgt_img,rh,rw):
@@ -65,8 +65,8 @@ def harris_corner_detector(target_img,window_size,k,th):
                           [ 1, 2, 1],]),
                 ]
 
-    blur_img = ndimage.convolve(target_img, wa.generate_gaussian_filter(window_size,np.min(window_size)/3))
-    sobel_img = wa.multi_filter(blur_img,fil_sobel)
+    blur_img = ndimage.convolve(target_img, generate_gaussian_filter(window_size,np.min(window_size)/3))
+    sobel_img = multi_filter(blur_img,fil_sobel)
 
     dx2 = sobel_img[0]*sobel_img[0]
     dy2 = sobel_img[1]*sobel_img[1]
