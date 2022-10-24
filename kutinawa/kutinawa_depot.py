@@ -1062,7 +1062,15 @@ def generate_char_img(in_str):
                                                                   [ 0, 0, 0, 0, 0, 0, 0,], ]))
     return out_img
 
+def direct_draw_roi(target_img,roi_pos,roi_num):
+    target_img[roi_pos[0][0]:roi_pos[0][1], roi_pos[1][0],:] = 255
+    target_img[roi_pos[0][0]:roi_pos[0][1], roi_pos[1][1],:] = 255
+    target_img[roi_pos[0][0], roi_pos[1][0]:roi_pos[1][1],:] = 255
+    target_img[roi_pos[0][1], roi_pos[1][0]:roi_pos[1][1],:] = 255
 
+    roi_num_img = generate_char_img(roi_num)*255
+    target_img[roi_pos[0][0]+2:roi_pos[0][0]+2+np.shape(roi_num_img)[0],roi_pos[1][0]+2:roi_pos[1][0]+2+np.shape(roi_num_img)[1],:] += np.tile(roi_num_img[:,:,np.newaxis],(1,1,3))
+    return np.clip(target_img,0,255)
 
 macbeth_color = ['#735244','#c29682','#627a9d','#576c43','#8580b1','#67bdaa',
                  '#d67e2c','#505ba6','#c15a63','#5e3c6c','#9dbc40','#e0a32e',
