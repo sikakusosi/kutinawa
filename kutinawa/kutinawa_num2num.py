@@ -3,7 +3,7 @@
 LUT,数値を別の表現へ変換,固定小数対応キャスト処理等を集約する。
 """
 import numpy as np
-
+import math
 
 ######################################################################################################################## LUT
 def linear_LUT(input, x, y, mode='nonclip'):
@@ -58,7 +58,7 @@ def round_decimal_point(target_array, decimal_point):
     return (s * target_array * p * 2 + 1) // 2 / p * s
 
 def round_effective_digit(target_array,effective_digit):
-    return round_decimal_point(target_array, effective_digit - ((np.log10(np.abs(x))).astype(int) + 1))
+    return round_decimal_point(target_array, effective_digit - ((np.log10(np.abs(target_array))).astype(int) + 1))
 
 def ceil_effective_digit(target_array,effective_digit):
     decimal_point = effective_digit - ((np.log10(np.abs(target_array))).astype(int) + 1)
@@ -127,4 +127,4 @@ def cast_evenround(input,bit_comp):
 
 ######################################################################################################################## exif解釈用
 def exif_ShutterSpeedValue_to_denominator(exif_ShutterSpeedValue):
-    return ceil_effective_digit(np.power(2,exif_ShutterSpeedValue),3)
+    return math.ceil(np.power(2,exif_ShutterSpeedValue))
