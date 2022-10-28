@@ -82,3 +82,28 @@ def harris_corner_detector(target_img,window_size,k,th):
 
     corner_map = R_img>th
     return corner_map
+
+
+def otsu_binarization_threshold(target_img):
+    """
+    大津の2値化アルゴリズムによって求められた閾値を返す
+    target_img>otsu_binarization_threshold(target_img)とすることで2値化
+    :param target_img: 入力画像、intであること
+    :return: 大津の2値化アルゴリズムによって求められた閾値
+    """
+    target_hist,bin = np.histogram(target_img,np.arange(np.min(target_img),np.max(target_img)+2))
+    num_left = np.cumsum(target_hist)
+    num_right = num_left[-1] - num_left
+    mean_left = np.cumsum(target_hist * bin[:-1])
+    mean_right = (mean_left[-1] - mean_left)
+    mean_left[num_left!=0] = mean_left[num_left!=0] / num_left[num_left!=0]
+    mean_left[num_left==0] = 0
+    mean_right[num_right!=0] = mean_right[num_right!=0] / num_right[num_right!=0]
+    mean_right[num_right==0] = 0
+    class_var = num_left*num_right*(mean_left-mean_right)*(mean_left-mean_right)
+    class_var[np.isnan(class_var)]=0
+    th = bin[np.argmax(class_var)+1]
+    return th
+
+
+
