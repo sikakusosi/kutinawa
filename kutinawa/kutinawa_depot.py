@@ -5,7 +5,10 @@
 (テスト不足とかではない。)
 """
 import numpy as np
+from scipy import signal
+from scipy import ndimage
 from .kutinawa_filter import fast_boxfilter,fast_box_variance_filter
+from .kutinawa_num2num import linear_LUT
 
 def generate_window2d(hw, type_func):
     """
@@ -180,7 +183,6 @@ def raw_split(target_raw, raw_mode='RG;GB;', fill_num=None):
 
     return out_img_list
 
-
 def index_map_merge(merge_target_img_list,index_map):
     merged_img = merge_target_img_list[0].copy()
     for i in np.arange(1,len(merge_target_img_list)):
@@ -194,28 +196,34 @@ def image_power_spectrum2d(target_img):
     power_spectrum2d = np.abs(shifted_fft_data)*np.abs(shifted_fft_data)
     return power_spectrum2d
 
-def radial_profile(target_img, center=None):
-    y_array, x_array = np.indices(target_img.shape)
-    if not center:
-        center = np.array([(x_array.max()-x_array.min())/2.0, (y_array.max()-y_array.min())/2.0])
-    r_array = np.hypot(x_array - center[0], y_array - center[1])
-
-    ind = np.argsort(r_array.flat)
-    r_sorted = r_array.flat[ind]
-    i_sorted = target_img.flat[ind]
-    r_int = r_sorted.astype(int)
-    deltar = r_int[1:] - r_int[:-1]  # Assumes all radii represented
-    rind = np.where(deltar)[0]       # location of changed radius
-    nr = rind[1:] - rind[:-1]        # number of radius bin
-    csim = np.cumsum(i_sorted, dtype=float)
-    tbin = csim[rind[1:]] - csim[rind[:-1]]
-    radial_prof = tbin / nr
-    return radial_prof
-
 def image_power_spectrum1d(target_img):
-    power_spectrum1d = radial_profile(image_power_spectrum2d(target_img))
+    power_spectrum2d = image_power_spectrum2d(target_img)
+    h = power_spectrum2d.shape[0]
+    w = power_spectrum2d.shape[1]
+    wc = w // 2
+    hc = h // 2
+    Y, X = np.ogrid[0:h, 0:w]
+    r = np.hypot(X - wc, Y - hc).astype(int)
+    power_spectrum1d = ndimage.sum(power_spectrum2d, r, index=np.arange(0, wc))
     return power_spectrum1d
 
+def linear_envelope(target_data):
+    target_data2 = np.squeeze(target_data)
+    target_data2_mean = np.mean(target_data2)
+    target_data2 = target_data2 - target_data2_mean
+    peaks_p, _ = signal.find_peaks(target_data2, height=0)
+    peaks_m, _ = signal.find_peaks(-target_data2, height=0)
+    liner_env_p = linear_LUT(np.arange(0, len(target_data2)), peaks_p, target_data2[peaks_p], mode='clip')+target_data2_mean
+    liner_env_m = linear_LUT(np.arange(0, len(target_data2)), peaks_m, target_data2[peaks_m], mode='clip')+target_data2_mean
+    return liner_env_p,liner_env_m
+
+def instant_phase_frequency(target_data):
+    target_data2 = np.squeeze(target_data)
+    target_data2 = target_data2-np.mean(target_data2)
+    z = signal.hilbert(target_data2)
+    inst_phase = np.unwrap(np.angle(z))
+    inst_freq = np.diff(inst_phase) / (2 * np.pi)
+    return inst_phase,inst_freq
 
 
 seven_fivedct = {'0': np.array([[ 0, 0, 0, 0, 0, 0, 0,],
@@ -1063,14 +1071,20 @@ def generate_char_img(in_str):
     return out_img
 
 def direct_draw_roi(target_img,roi_pos,roi_num):
-    target_img[roi_pos[0][0]:roi_pos[0][1], roi_pos[1][0],:] = 255
-    target_img[roi_pos[0][0]:roi_pos[0][1], roi_pos[1][1],:] = 255
-    target_img[roi_pos[0][0], roi_pos[1][0]:roi_pos[1][1],:] = 255
-    target_img[roi_pos[0][1], roi_pos[1][0]:roi_pos[1][1],:] = 255
+    target_img_roi = target_img.copy()
+    target_img_roi = target_img_roi.astype(float)
+    target_img_roi[roi_pos[0][0]:roi_pos[0][1], roi_pos[1][0],:] = 255
+    target_img_roi[roi_pos[0][0]:roi_pos[0][1], roi_pos[1][1],:] = 255
+    target_img_roi[roi_pos[0][0], roi_pos[1][0]:roi_pos[1][1],:] = 255
+    target_img_roi[roi_pos[0][1], roi_pos[1][0]:roi_pos[1][1],:] = 255
 
-    roi_num_img = generate_char_img(roi_num)*255
-    target_img[roi_pos[0][0]+2:roi_pos[0][0]+2+np.shape(roi_num_img)[0],roi_pos[1][0]+2:roi_pos[1][0]+2+np.shape(roi_num_img)[1],:] += np.tile(roi_num_img[:,:,np.newaxis],(1,1,3))
-    return np.clip(target_img,0,255)
+    roi_num_img = (generate_char_img(roi_num)*255)
+    target_img_roi[roi_pos[0][0]+2:roi_pos[0][0]+2+np.shape(roi_num_img)[0],roi_pos[1][0]+2:roi_pos[1][0]+2+np.shape(roi_num_img)[1],0] += roi_num_img
+    target_img_roi[roi_pos[0][0]+2:roi_pos[0][0]+2+np.shape(roi_num_img)[0],roi_pos[1][0]+2:roi_pos[1][0]+2+np.shape(roi_num_img)[1],1] += roi_num_img
+    target_img_roi[roi_pos[0][0]+2:roi_pos[0][0]+2+np.shape(roi_num_img)[0],roi_pos[1][0]+2:roi_pos[1][0]+2+np.shape(roi_num_img)[1],2] += roi_num_img
+    return (np.clip(target_img_roi,0,255)).astype(np.uint8)
+
+
 
 macbeth_color = ['#735244','#c29682','#627a9d','#576c43','#8580b1','#67bdaa',
                  '#d67e2c','#505ba6','#c15a63','#5e3c6c','#9dbc40','#e0a32e',
