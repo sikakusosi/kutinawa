@@ -334,3 +334,40 @@ def txt_to_float(txt_path,delimiter):
     txt_2darray = np.array([txt_1line.split(delimiter) for txt_1line in txt_data.splitlines()])
     str_float_2dlist = [[str_to_float_possible(txt_1elem) for txt_1elem in txt_1darray] for txt_1darray in txt_2darray]
     return str_float_2dlist
+
+
+def ini_get(target_ini, ini_section, ini_var):
+    """
+    iniファイルの変数を読み込む関数
+    1次元、2次元リスト（改行込み）に対応
+    :param target_ini: configparserモジュールのConfigParserクラスインスタンス、対象のiniを読み込ませた状態で渡す
+    :param ini_section: iniファイル内の取得したい変数が属する、[]で定義されるセクション
+    :param ini_var: iniファイル内の取得したい変数名
+    :return:
+    (例)
+    ● test.ini
+    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ┃[section_A]                                   ┃
+    ┃var_1 = 10                                    ┃
+    ┃var_2 = 'abc'                                 ┃
+    ┃[section_B]                                   ┃
+    ┃var_list = [[1,2],[3,4],                      ┃
+    ┃            [5,6],[7,8]]                      ┃
+    ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    ● pythonコード
+    import configparser
+    target_ini = configparser.ConfigParser()
+    target_ini.read('test.ini', encoding='utf-8')
+    print(ini_get(target_ini, ini_section='section_A', ini_var='var_1'))
+    # 10
+    print(ini_get(target_ini, ini_section='section_A', ini_var='var_2'))
+    # 'abc'
+    print(ini_get(target_ini, ini_section='section_B', ini_var='var_list'))
+    # [[1, 2], [3, 4], [5, 6], [7, 8]]
+
+    """
+    get_item = target_ini.get(ini_section, ini_var)
+    if '[' in get_item:
+        get_item = json.loads(get_item.replace('\n', ''))
+    return get_item
