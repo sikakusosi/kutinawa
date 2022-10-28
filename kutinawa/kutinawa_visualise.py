@@ -393,7 +393,9 @@ def plotq(x_list, y_list,
           markersize=7,
           linestyle='-',
           linewidth=2,
-          label='None'):
+          label='None',
+          x_log=False,
+          y_log=False):
     """
     折れ線グラフを一行で表示し、マウス操作・スクリーンショット保存等のショートカットキー機能を提供する関数。
 
@@ -476,6 +478,11 @@ def plotq(x_list, y_list,
 
         fig.canvas.mpl_connect('pick_event', on_pick)
         pass
+
+    if x_log:
+        ax.set_xscale('log')
+    if y_log:
+        ax.set_yscale('log')
 
     # q_basic機能付加
     fig = q_basic(fig=fig,init_xy_pos=[ax.get_xlim(),ax.get_ylim()] )
