@@ -5,6 +5,8 @@ import os
 import datetime
 import csv
 import re
+import configparser
+import json
 
 import numpy as np
 from PIL import Image, ImageSequence, TiffImagePlugin, ExifTags
