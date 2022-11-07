@@ -1085,6 +1085,70 @@ def direct_draw_roi(target_img,roi_pos,roi_num):
     return (np.clip(target_img_roi,0,255)).astype(np.uint8)
 
 
+def multi_patch_picker(target_img,patch_LU_list,patch_size_list):
+    """
+    複数箇所の矩形領域（パッチ）を画像から取得し、list化して返す
+    :param target_img: パッチを取得する画像
+    :param patch_LU_list: 取得したいパッチの左上座標、[(y0,x0),(y1,x1),...]の形式で指定
+    :param patch_size_list: 取得したいパッチのサイズ、[(y_size0,x_size0),(y_size1,x_size1),...]の形式 or (y_size,x_size)の形式で指定
+                            (y_size,x_size)の形式の場合、すべての座標に対してそのサイズでの切り取りが行われる
+    :return: list化されたパッチ、０次元目にそれぞれのパッチ、1,2次元目に縦横が格納される
+    """
+    if not isinstance(patch_LU_list,list):
+        patch_LU_list = [patch_LU_list]
+
+    if not isinstance(patch_size_list,list):
+        patch_size_list = [patch_size_list for i in np.arange(len(patch_LU_list))]
+
+    patch_list = [target_img[patch_LU[0]:patch_LU[0]+patch_size[0],patch_LU[1]:patch_LU[1]+patch_size[1]] for patch_LU,patch_size in zip(patch_LU_list,patch_size_list)]
+    return patch_list
+
+
+def multi_patch_stats(target_img,patch_LU_list,patch_size_list):
+    """
+    複数箇所の矩形領域（パッチ）を画像から取得し、統計量を返す
+    :param target_img: パッチを取得する画像
+    :param patch_LU_list: 取得したいパッチの左上座標、[(y0,x0),(y1,x1),...]の形式で指定
+    :param patch_size_list: 取得したいパッチのサイズ、[(y_size0,x_size0),(y_size1,x_size1),...]の形式 or (y_size,x_size)の形式で指定
+                            (y_size,x_size)の形式の場合、すべての座標に対してそのサイズでの切り取りが行われる
+    :return: 各パッチのmean,std,min,max,median
+    """
+    patch_list = multi_patch_picker(target_img,patch_LU_list,patch_size_list)
+    return np.mean(patch_list,axis=(1,2)),np.std(patch_list,axis=(1,2)),np.min(patch_list,axis=(1,2)),np.max(patch_list,axis=(1,2)),np.median(patch_list,axis=(1,2))
+
+
+def weighted_least_squares(in_x, in_y, weight):
+    """
+    重み付き最小二乗法で、傾きと切片を求める
+    :param in_x       : 入力x、一次元のlistもしくはarray形式
+    :param in_y       : 入力y、一次元のlistもしくはarray形式
+    :param weight     : 重み、一次元のlistもしくはarray形式
+    　　　　             （注意：in_x, in_y, weightは同じ長さであること）
+    :return grad      : 求められた傾き
+    :return intercept : 求められた切片
+    """
+    X1 = np.sum(weight * in_x)
+    X2 = np.sum(weight * in_x * in_x)
+    W0 = np.sum(weight)
+    Y1 = np.sum(in_y * weight)
+    Z2 = np.sum(in_x * in_y * weight)
+    grad = (X1 * Y1 - W0 * Z2) / (X1 * X1 - W0 * X2)
+    intercept = (X1 * Z2 - X2 * Y1) / (X1 * X1 - W0 * X2)
+    return grad, intercept
+
+
+def least_squares(in_x, in_y):
+    """
+    最小二乗法で、傾きと切片を求める
+    :param in_x       : 入力x、一次元のlistもしくはarray形式
+    :param in_y       : 入力y、一次元のlistもしくはarray形式
+    　　　　             （注意：in_x, in_yは同じ長さであること）
+    :return grad      : 求められた傾き
+    :return intercept : 求められた切片
+    """
+    in_w = np.ones_like(in_x)
+    return weighted_least_squares(in_x, in_y, in_w)
+
 
 macbeth_color = ['#735244','#c29682','#627a9d','#576c43','#8580b1','#67bdaa',
                  '#d67e2c','#505ba6','#c15a63','#5e3c6c','#9dbc40','#e0a32e',
