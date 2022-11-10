@@ -7,7 +7,7 @@
 import numpy as np
 from scipy import signal
 from scipy import ndimage
-from .kutinawa_filter import fast_boxfilter,fast_box_variance_filter
+from .kutinawa_filter import fast_boxfilter,fast_box_variance_filter,generate_gaussian_filter,multi_filter
 from .kutinawa_num2num import linear_LUT
 
 def generate_window2d(hw, type_func):
