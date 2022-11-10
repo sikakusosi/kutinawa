@@ -154,7 +154,7 @@ def generate_bayer_boxfilter(fil_size,mode='sum1'):
 
     return fil
 
-def generate_gaussian_filter(shape,sigma):
+def generate_gaussian_filter(shape,sigma,sum1=True):
     """
     フィルタの総和が1になる、任意矩形形状のガウシアンフィルタを返す
     generate_gaussian_filter((5,5),0.5) = fspecial('gaussian',5,0.5)<Matlab func>
@@ -175,7 +175,7 @@ def generate_gaussian_filter(shape,sigma):
     gf = np.exp( -(x*x + y*y) / (2.0*sigma*sigma) )
     gf[ gf < np.finfo(gf.dtype).eps*gf.max() ] = 0
     sum_gf = gf.sum()
-    if sum_gf != 0:
+    if (sum_gf != 0) and (sum1):
         gf = gf/sum_gf
     return gf
 
