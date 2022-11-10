@@ -5,7 +5,7 @@ NR,demosaic,sharpness,deconvolution,等が該当する
 """
 import numpy as np
 from scipy import ndimage
-from.kutinawa_filter import fast_boxfilter
+from.kutinawa_filter import fast_boxfilter, generate_gaussian_filter
 
 ######################################################################################################################## noise reduction
 
@@ -25,6 +25,15 @@ def generate_noise_map(target_raw,A,K,S,OB):
     noise_gain_map[1::2, 1::2] = np.sqrt(A[3]*target_raw2[1::2, 1::2]*target_raw2[1::2, 1::2] + target_raw2[1::2, 1::2]*K[3] + S[3]*S[3])
 
     return noise_gain_map
+
+def bilateral_filter(target_img,fil_size,spacial_sigma,pixval_sigma,mode='reflect'):
+    pad_image = np.pad(target_img, ((int(fil_size[0] / 2),), (int(fil_size[1] / 2),)), mode)
+    inner_pixels_stride = np.lib.stride_tricks.as_strided(pad_image, target_img.shape + fil_size, pad_image.strides * 2)
+    center_pixel_stride = np.tile(target_img.reshape(target_img.shape + (1, 1)), (1, 1) + fil_size)
+    weights = generate_gaussian_filter(fil_size,spacial_sigma,sum1=False) * np.exp(-((center_pixel_stride - inner_pixels_stride) ** 2) / (2.0 * pixval_sigma * pixval_sigma * 2.0))
+    weight_sum = np.sum(weights, axis=(2, 3))
+    bil_img = np.einsum('ijkl,ijkl->ij', weights, inner_pixels_stride) / weight_sum
+    return bil_img
 
 def non_local_means(target_img,block_size,search_size,stride,th):
     """
@@ -77,8 +86,8 @@ def non_local_means(target_img,block_size,search_size,stride,th):
             temp_img = target_img2[ul_h:ul_h+hw[0],ul_w:ul_w+hw[1]]
             diff = target_img-temp_img
             sad = fast_boxfilter(diff*diff,block_size[0],block_size[1])
-            out_img[sad<th] = out_img[sad<th]+temp_img[sad<th]
-            out_count[sad<th] = out_count[sad<th] + 1
+            out_img[sad<=th] = out_img[sad<=th]+temp_img[sad<=th]
+            out_count[sad<=th] = out_count[sad<=th] + 1
     return out_img/out_count
 
 def non_local_means_with_guide(target_img,guide_img,block_size,search_size,stride,th):
