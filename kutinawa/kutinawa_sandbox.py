@@ -56,54 +56,21 @@ def generate_alone_defect_pix_map__low_precision(img_size, non_overlap_area, def
 
 
 
-def harris_corner_detector(target_img,window_size,k,th):
-    fil_sobel = [np.array([[ 1, 0,-1],
-                          [ 2, 0,-2],
-                          [ 1, 0,-1], ]),
-                np.array([[-1,-2,-1],
-                          [ 0, 0, 0],
-                          [ 1, 2, 1],]),
-                ]
-
-    blur_img = ndimage.convolve(target_img, generate_gaussian_filter(window_size,np.min(window_size)/3))
-    sobel_img = multi_filter(blur_img,fil_sobel)
-
-    dx2 = sobel_img[0]*sobel_img[0]
-    dy2 = sobel_img[1]*sobel_img[1]
-    dxy = sobel_img[0]*sobel_img[1]
-
-    Sx2 = ndimage.convolve(dx2,np.ones(window_size))
-    Sy2 = ndimage.convolve(dy2,np.ones(window_size))
-    Sxy = ndimage.convolve(dxy,np.ones(window_size))
-
-    S_det = Sx2*Sy2-Sxy*Sxy
-    S_tr  = Sx2+Sy2
-    R_img = S_det - k * (S_tr * S_tr)
-
-    corner_map = R_img>th
-    return corner_map
-
-
-def otsu_binarization_threshold(target_img):
-    """
-    大津の2値化アルゴリズムによって求められた閾値を返す
-    target_img>otsu_binarization_threshold(target_img)とすることで2値化
-    :param target_img: 入力画像、intであること
-    :return: 大津の2値化アルゴリズムによって求められた閾値
-    """
-    target_hist,bin = np.histogram(target_img,np.arange(np.min(target_img),np.max(target_img)+2))
-    num_left = np.cumsum(target_hist)
-    num_right = num_left[-1] - num_left
-    mean_left = np.cumsum(target_hist * bin[:-1])
-    mean_right = (mean_left[-1] - mean_left)
-    mean_left[num_left!=0] = mean_left[num_left!=0] / num_left[num_left!=0]
-    mean_left[num_left==0] = 0
-    mean_right[num_right!=0] = mean_right[num_right!=0] / num_right[num_right!=0]
-    mean_right[num_right==0] = 0
-    class_var = num_left*num_right*(mean_left-mean_right)*(mean_left-mean_right)
-    class_var[np.isnan(class_var)]=0
-    th = bin[np.argmax(class_var)+1]
-    return th
-
-
-
+# NLMの別実装、HQprocessに実装しているものより遅い
+# def non_local_means(target_img, block_size, search_size, th, mode):
+#     pad_image = np.pad(target_img, ((int(search_size[0] / 2)+int(block_size[0] / 2),), (int(search_size[1] / 2) + int(block_size[1] / 2),)), mode)
+#     center_pad_image = np.pad(target_img, ((int(block_size[0] / 2),), (int(block_size[1] / 2),)), mode)
+#     center_patch_stride = np.lib.stride_tricks.as_strided(center_pad_image, target_img.shape + block_size, center_pad_image.strides * 2)
+#     cpi_size = np.shape(center_pad_image)
+#     nlm_img = np.zeros_like(target_img)
+#     nlm_count_img = np.zeros_like(target_img)
+#     for y in np.arange(search_size[0]):
+#         for x in np.arange(search_size[1]):
+#             print("\r" + f'{y*search_size[1]+x: =5}' + '/' + f'{search_size[0]*search_size[1]: =5}', end="")
+#             temp_pad_img = pad_image[y:y+cpi_size[0],x:x+cpi_size[1]]
+#             search_patch_stride = np.lib.stride_tricks.as_strided(temp_pad_img, target_img.shape + block_size, temp_pad_img.strides * 2)
+#             block_match_bool_map = np.einsum('ijkl->ij', (center_patch_stride-search_patch_stride)**2)<th
+#             nlm_img = nlm_img + block_match_bool_map* temp_pad_img[int(block_size[0] / 2):int(-block_size[0] / 2), int(block_size[1] / 2):-int(block_size[1] / 2)]
+#             nlm_count_img = nlm_count_img + block_match_bool_map
+#     nlm_img = nlm_img/nlm_count_img
+#     return nlm_img

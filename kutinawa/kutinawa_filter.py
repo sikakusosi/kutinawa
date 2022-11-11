@@ -246,6 +246,16 @@ def convolve2d_nan(target_img,weights,mode='mirror'):
 
 
 
+def filter2d(target_img, fil_mat, mode):
+    pad_img = np.pad(target_img, ((int(fil_mat.shape[0] / 2),), (int(fil_mat.shape[1] / 2),)), mode=mode)
+    shape = target_img.shape + fil_mat.shape
+    strides = pad_img.strides * 2
+    strided_image = np.lib.stride_tricks.as_strided(pad_img, shape, strides, writeable=False)
+    filtered_img = np.einsum('kl,ijkl->ij', fil_mat, strided_image)
+    return filtered_img
+
+
+
 def conv2d_only_numpy(target_img,weights,mode):
     """
     2次元畳み込みをする関数。
