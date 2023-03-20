@@ -18,6 +18,24 @@ def multi_filter(target_img,filter_mat,mode='constant'):
     filtered_img = np.array([ndimage.convolve(target_img, np.squeeze(fil), mode=mode) for fil in filter_mat])
     return filtered_img
 
+def multiCH_any_func(func,target_img,func_input_dict):
+    out_img = np.zeros_like(target_img)
+    for i in np.arange(np.shape(target_img)[2]):
+        out_img[:,:,i] = func(target_img[:,:,i],**func_input_dict)
+    return out_img
+
+def multiCH_filter(target_img, filter_mat, mode='constant'):
+    """
+    複数のチャンネルに対して、フィルターを掛けた結果を返す
+    :param target_img: フィルタリングしたい画像(ndarray,HxWxC)
+    :param filter_mat: フィルター
+    :param mode: パディングのモード、ndimage.convolveのmodeに準拠
+    :return: フィルタリングされた画像(ndarray)
+    """
+    filtered_img = np.zeros_like(target_img)
+    for i in np.arange(np.shape(target_img)[2]):
+        filtered_img[:,:,i] = ndimage.convolve(target_img[:,:,i], filter_mat, mode=mode)
+    return filtered_img
 
 def fast_boxfilter(target_img,fil_h,fil_w):
     """
@@ -35,8 +53,21 @@ def fast_boxfilter(target_img,fil_h,fil_w):
     """
 
     # target_img2 = np.pad(target_img,(((fil_h//2)+1, (fil_h//2)), ((fil_w//2)+1, (fil_w//2))),'reflect')
-    integ_img = np.cumsum(np.cumsum(np.pad(target_img,(((fil_h//2)+1, (fil_h//2)), ((fil_w//2)+1, (fil_w//2))),'reflect'), axis=0), axis=1)
+    integ_img = np.nancumsum(np.nancumsum(np.pad(target_img,(((fil_h//2)+1, (fil_h//2)), ((fil_w//2)+1, (fil_w//2))),'reflect'), axis=0), axis=1)
     return integ_img[fil_h::, fil_w::] - integ_img[0:-fil_h, fil_w::] - integ_img[fil_h::, 0:-fil_w] + integ_img[0:-fil_h, 0:-fil_w]
+
+def multiCH_fast_box_filter(target_img,fil_h,fil_w):
+    """
+    複数のチャンネルに対して、フィルターを掛けた結果を返す
+    :param target_img: フィルタリングしたい画像(ndarray,HxWxC)
+    :param filter_mat: フィルター
+    :param mode: パディングのモード、ndimage.convolveのmodeに準拠
+    :return: フィルタリングされた画像(ndarray)
+    """
+    filtered_img = np.zeros_like(target_img)
+    for i in np.arange(np.shape(target_img)[2]):
+        filtered_img[:,:,i] = fast_boxfilter(target_img[:,:,i],fil_h,fil_w)
+    return filtered_img
 
 def fast_boxfilter_even(target_img,fil_h,fil_w):
     """
