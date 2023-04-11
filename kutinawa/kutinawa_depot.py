@@ -1150,6 +1150,24 @@ def least_squares(in_x, in_y):
     return weighted_least_squares(in_x, in_y, in_w)
 
 
+def bs_noise_characteristic(target_img, seg_num=256, seg_min_max=(0, 0.9)):
+    seg_one = (seg_min_max[1] - seg_min_max[0]) / seg_num
+
+    mean_img = fast_boxfilter(target_img, 5, 5) / 5 / 5
+    var_img = fast_box_variance_filter(target_img, 5, 5)
+
+    labeled_img = np.clip((target_img - seg_min_max[0]) // seg_one, 0, seg_num)
+    label_min_var = ndimage.minimum(var_img, labels=labeled_img, index=np.arange(seg_num))
+    label_pix_val = ndimage.mean(mean_img, labels=labeled_img, index=np.arange(seg_num))
+    var_mean_ratio = (label_min_var - label_min_var[0]) / label_pix_val
+    label_pix_val = label_pix_val[var_mean_ratio < np.sort(var_mean_ratio)[int(seg_num * 0.1)]]
+    label_min_var = label_min_var[var_mean_ratio < np.sort(var_mean_ratio)[int(seg_num * 0.1)]]
+
+    grad, intercept = weighted_least_squares(in_x=label_pix_val, in_y=label_min_var, weight=1 / (label_pix_val))
+
+    return np.array([grad, intercept])
+
+
 def harris_corner_detector(target_img,window_size,k,th):
     fil_sobel = [np.array([[ 1, 0,-1],
                           [ 2, 0,-2],
