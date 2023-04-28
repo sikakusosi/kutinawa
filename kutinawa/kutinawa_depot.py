@@ -1156,7 +1156,7 @@ def bs_noise_characteristic(target_img, seg_num=256, seg_min_max=(0, 0.9)):
     mean_img = fast_boxfilter(target_img, 5, 5) / 5 / 5
     var_img = fast_box_variance_filter(target_img, 5, 5)
 
-    labeled_img = np.clip((target_img - seg_min_max[0]) // seg_one, 0, seg_num)
+    labeled_img = np.clip((mean_img - seg_min_max[0]) // seg_one, 0, seg_num)
     label_min_var = ndimage.minimum(var_img, labels=labeled_img, index=np.arange(seg_num))
     label_pix_val = ndimage.mean(mean_img, labels=labeled_img, index=np.arange(seg_num))
     var_mean_ratio = (label_min_var - label_min_var[0]) / label_pix_val
@@ -1217,8 +1217,41 @@ def otsu_binarization_threshold(target_img):
     th = bin[np.argmax(class_var)+1]
     return th
 
-
 macbeth_color = ['#735244','#c29682','#627a9d','#576c43','#8580b1','#67bdaa',
                  '#d67e2c','#505ba6','#c15a63','#5e3c6c','#9dbc40','#e0a32e',
                  '#383d96','#469449','#af363c','#e7c71f','#bb5695','#0885a1',
                  '#f3f3f2','#c8c8c8','#a0a0a0','#7a7a79','#555555','#343434',]
+
+
+
+def in_polygon(polygon, tgt_point):
+    """
+    2次元平面上で、ある点が指定した多角形の中にあるかどうかを判定する
+
+    ○以下のコードと等価
+        line_cross_cnt = np.zeros(np.shape(tgt_point)[0])
+        for i in np.arange(np.shape(polygon)[0] - 1):
+            y_flag = (tgt_point[:, 1] < polygon[i, 1]) != (tgt_point[:, 1] < polygon[i + 1, 1])
+            x_flag = (tgt_point[:, 0] < (polygon[i + 1, 0] - polygon[i, 0]) * (tgt_point[:, 1] - polygon[i, 1]) / (polygon[i + 1, 1] - polygon[i, 1]) + polygon[i, 0])
+            line_cross_cnt += (y_flag * x_flag).astype(int)
+        in_flag = np.mod(line_cross_cnt,2)!=0
+
+    :param polygon: 2次元array形式、[[x1,y1],[x2,y2],...]のように多角形の座標を時計回りで記述
+    :param tgt_point: 2次元array形式、[[x1,y1],[x2,y2],...]のように判定したい座標を記述
+    :return: tgt_pointがpolygon内にあるかどうかのbool
+    """
+
+    def loop_array(target_array):
+        return np.concatenate([target_array, target_array[0][np.newaxis, :]], axis=0)
+
+    polygon = loop_array(polygon)
+
+    y_flag = (np.tile(tgt_point[:, 1], (np.shape(polygon)[0], 1)) < (polygon[:, 1])[:, np.newaxis])
+    y_flag = y_flag[:-1] != y_flag[1:]
+    x_flag = tgt_point[:, 0] < ((polygon[1:, 0] - polygon[:-1, 0])[:, np.newaxis] * (np.tile(tgt_point[:, 1], (np.shape(polygon)[0] - 1, 1)) - (polygon[:-1, 1])[:, np.newaxis]) / (polygon[1:, 1] - polygon[:-1, 1])[:, np.newaxis]) + (polygon[:-1, 0])[:, np.newaxis]
+    xy_flag = (y_flag * x_flag).astype(int)
+    line_cross_cnt = np.sum(xy_flag, axis=0)
+    in_flag = np.mod(line_cross_cnt, 2) != 0
+
+    return in_flag
+
