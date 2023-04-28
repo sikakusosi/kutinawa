@@ -1223,7 +1223,6 @@ macbeth_color = ['#735244','#c29682','#627a9d','#576c43','#8580b1','#67bdaa',
                  '#f3f3f2','#c8c8c8','#a0a0a0','#7a7a79','#555555','#343434',]
 
 
-
 def in_polygon(polygon, tgt_point):
     """
     2次元平面上で、ある点が指定した多角形の中にあるかどうかを判定する
@@ -1235,6 +1234,20 @@ def in_polygon(polygon, tgt_point):
             x_flag = (tgt_point[:, 0] < (polygon[i + 1, 0] - polygon[i, 0]) * (tgt_point[:, 1] - polygon[i, 1]) / (polygon[i + 1, 1] - polygon[i, 1]) + polygon[i, 0])
             line_cross_cnt += (y_flag * x_flag).astype(int)
         in_flag = np.mod(line_cross_cnt,2)!=0
+
+    ○例
+    import numpy as np
+    import kutinawa as wa
+
+    polygon = np.array([[0.210, 0.320],
+                        [0.220,0.315],
+                        [0.395,0.135],
+                        [0.255,0.250], ])# (x,y)
+    tgt_point = wa.generate_random_array((10000,10000))
+
+    in_flag = wa.in_polygon(polygon,tgt_point)
+    wa.plotq([polygon[:, 0], tgt_point[:, 0]*in_flag, tgt_point[:, 0]*np.abs(1-in_flag)], [polygon[:, 1], tgt_point[:, 1]*in_flag, tgt_point[:, 1]*np.abs(1-in_flag)],
+             marker=['','o','x'], linewidth=[3,0,0])
 
     :param polygon: 2次元array形式、[[x1,y1],[x2,y2],...]のように多角形の座標を時計回りで記述
     :param tgt_point: 2次元array形式、[[x1,y1],[x2,y2],...]のように判定したい座標を記述
@@ -1254,4 +1267,3 @@ def in_polygon(polygon, tgt_point):
     in_flag = np.mod(line_cross_cnt, 2) != 0
 
     return in_flag
-
