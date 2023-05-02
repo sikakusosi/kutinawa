@@ -18,10 +18,13 @@ def multi_filter(target_img,filter_mat,mode='constant'):
     filtered_img = np.array([ndimage.convolve(target_img, np.squeeze(fil), mode=mode) for fil in filter_mat])
     return filtered_img
 
-def multiCH_any_func(func,target_img,func_input_dict):
+def multiCH_any_func(func,target_img,func_input_dict=None):
     out_img = np.zeros_like(target_img)
     for i in np.arange(np.shape(target_img)[2]):
-        out_img[:,:,i] = func(target_img[:,:,i],**func_input_dict)
+        if func_input_dict:
+            out_img[:,:,i] = func(target_img[:,:,i],**func_input_dict)
+        else:
+            out_img[:,:,i] = func(target_img[:,:,i])
     return out_img
 
 def multiCH_filter(target_img, filter_mat, mode='constant'):
@@ -51,10 +54,26 @@ def fast_boxfilter(target_img,fil_h,fil_w):
     :param fil_w:       boxフィルタの幅（奇数）
     :return:box         フィルタリング後の画像
     """
-
-    # target_img2 = np.pad(target_img,(((fil_h//2)+1, (fil_h//2)), ((fil_w//2)+1, (fil_w//2))),'reflect')
     integ_img = np.nancumsum(np.nancumsum(np.pad(target_img,(((fil_h//2)+1, (fil_h//2)), ((fil_w//2)+1, (fil_w//2))),'reflect'), axis=0), axis=1)
     return integ_img[fil_h::, fil_w::] - integ_img[0:-fil_h, fil_w::] - integ_img[fil_h::, 0:-fil_w] + integ_img[0:-fil_h, 0:-fil_w]
+
+def fast_boxfilter_eachCH(target_img, fil_h, fil_w):
+    """
+    integral imageを用いたO(1)の高速boxfilter
+    結果は「ndimage.convolve(target_img, np.ones((fil_h,fil_w)), mode='mirror')」と、計算誤差程度の一致をする
+    ただintegral imageの特性上、バイナリ一致とかはしないし、画像の右下ほど誤差が乗る
+
+    雑アルゴル：パディング → integral image作成 → A-B-C+D
+    参考：www.sanko-shoko.net/note.php?id=kzqj
+
+    :param target_img:  フィルタリングしたい画像
+    :param fil_h:       boxフィルタの高さ（奇数）
+    :param fil_w:       boxフィルタの幅（奇数）
+    :return:box         フィルタリング後の画像
+    """
+    integ_img = np.nancumsum(np.nancumsum(np.pad(target_img, (((fil_h // 2) + 1, (fil_h // 2)), ((fil_w // 2) + 1, (fil_w // 2)), (0,0)), 'reflect'), axis=0), axis=1)
+    return integ_img[fil_h::, fil_w::,:] - integ_img[0:-fil_h, fil_w::,:] - integ_img[fil_h::, 0:-fil_w,:] + integ_img[0:-fil_h, 0:-fil_w,:]
+
 
 def multiCH_fast_box_filter(target_img,fil_h,fil_w):
     """
