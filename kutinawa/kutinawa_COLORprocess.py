@@ -47,6 +47,19 @@ def BT709_to_rgb(target_img):
                                           1,-0.187324,-0.468124,
                                           1,1.8556   ,0         ])
 
+def rgb_to_hsv(target_img):
+    ch_wise_max = np.nanmax(target_img,axis=2)
+    ch_wise_min = np.nanmin(target_img, axis=2)
+    h = 60*((target_img[:,:,1]-target_img[:,:,2])/(ch_wise_max - ch_wise_min))
+    h[ch_wise_max==target_img[:,:,1]] = (60*((target_img[:,:,2]-target_img[:,:,0]) / (ch_wise_max-ch_wise_min))+120)[ch_wise_max==target_img[:,:,1]]
+    h[ch_wise_max==target_img[:,:,2]] = (60*((target_img[:,:,0]-target_img[:,:,1]) / (ch_wise_max-ch_wise_min))+240)[ch_wise_max==target_img[:,:,2]]
+    h[h<0] = h[h<0]+360
+    h[(target_img[:,:,0]==target_img[:,:,1])*(target_img[:,:,0]==target_img[:,:,2])] = 0
+    s = (ch_wise_max - ch_wise_min) / ch_wise_min
+    v = ch_wise_max
+    return np.concatenate([h[:,:,np.newaxis],s[:,:,np.newaxis],v[:,:,np.newaxis]],axis=2)/360
+
+
 ######################################################################################################################## WB
 def wb_for_bayer(target_img,gain,raw_mode):
     out_img = np.zeros_like(target_img)
