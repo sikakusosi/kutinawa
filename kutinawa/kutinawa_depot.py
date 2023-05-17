@@ -1226,6 +1226,7 @@ macbeth_color = ['#735244','#c29682','#627a9d','#576c43','#8580b1','#67bdaa',
 def in_polygon(polygon, tgt_point):
     """
     2次元平面上で、ある点が指定した多角形の中にあるかどうかを判定する
+    crossing number algorithm の実装
 
     ○以下のコードと等価
         line_cross_cnt = np.zeros(np.shape(tgt_point)[0])
