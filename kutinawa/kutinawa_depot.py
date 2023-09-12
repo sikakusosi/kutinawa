@@ -1268,3 +1268,77 @@ def in_polygon(polygon, tgt_point):
     in_flag = np.mod(line_cross_cnt, 2) != 0
 
     return in_flag
+
+
+def isleft(l,r,tgt_points):
+    """
+    点tgt_pointsが直線lrの"左側"にあるかどうか判定する
+
+    例：
+    import kutinawa as wa
+    tgt_points = wa.generate_random_array((10000, 10000))
+    l = [0.25, 0.25]
+    r = [0.75, 0.75]
+    left_flag = isleft(l, r, tgt_points)
+
+    wa.plotq([np.array([l[0],r[0]]),tgt_points[:, 0] * left_flag, tgt_points[:, 0] * np.abs(1 - left_flag)],
+             [np.array([l[1],r[1]]),tgt_points[:, 1] * left_flag, tgt_points[:, 1] * np.abs(1 - left_flag)],
+             marker=['', 'o', 'x'], linewidth=[3, 0, 0])
+    :param l:
+    :param r:
+    :param tgt_points:
+    :return:
+    """
+    z = ((r[0] - l[0]) * (tgt_points[:,1] - l[1])) - ((tgt_points[:,0] - l[0]) * (r[1] - l[1]))
+    return z > 0
+
+
+def upper_hull(l, r, tgt_points):
+    if len(tgt_points) == 0:
+        return []
+
+    result_points = []
+
+    # 直線lr：ax+by+c=0 と 点tgt_pointsの距離算出
+    a = (r[1] - l[1]) / (r[0] - l[0])
+    b = -1
+    c = l[1] - a * l[0]
+    dist = np.abs(tgt_points[:,0]*a+tgt_points[:,1]*b+c) #/np.sqrt(a**2+b**2)
+
+    # 直線lrの"左側"にいるかどうか判定
+    left_flag = isleft(l,r,tgt_points)
+
+    # 直線lrの"左側"にいる&直線lrから最も遠い点、なければNone
+    farthest_point = tgt_points[np.argmax(dist*left_flag)] if np.sum(left_flag)>0 else []
+    result_points.append(farthest_point)
+
+    # 再帰で呼びだし
+    result_points = result_points + upper_hull(l, farthest_point, tgt_points[left_flag])
+    result_points = result_points + upper_hull(farthest_point, r, tgt_points[left_flag])
+
+    return result_points
+
+
+def quick_hull(target_points):
+    """
+    与えられた複数のx,y座標から、QuickHullアルゴリズムにより凸包を求める。
+    凸包を構成する座標を時計回りにソートした状態で返す。
+    :param target_points: (x,y)座標のリスト。[[x0,y0],[x1,y1],[x2,y2],...]
+    :return: 
+    """
+    target_points = np.array(target_points)
+    l_point,r_point = target_points[np.argmin(target_points,axis=0)[0]],target_points[np.argmax(target_points,axis=0)[0]]
+    result_points = [l_point,r_point]
+
+    temp_result   = upper_hull(l_point, r_point, target_points)
+    temp_result   = [t for t in temp_result if len(t)>0]
+    result_points = result_points+temp_result
+
+    temp_result   = upper_hull(r_point, l_point, target_points)
+    temp_result   = [t for t in temp_result if len(t)>0]
+    result_points = result_points+temp_result
+
+    weight_point  = np.mean(result_points, axis=0)
+    result_points = result_points[np.argsort(-np.arctan2(np.array(result_points)[:, 1] - weight_point[1], np.array(result_points)[:, 0] - weight_point[0]))]
+
+    return result_points
