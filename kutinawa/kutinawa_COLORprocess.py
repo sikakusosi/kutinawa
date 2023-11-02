@@ -47,17 +47,49 @@ def BT709_to_rgb(target_img):
                                           1,-0.187324,-0.468124,
                                           1,1.8556   ,0         ])
 
-def rgb_to_hsv(target_img):
-    ch_wise_max = np.nanmax(target_img, axis=2)
-    ch_wise_min = np.nanmin(target_img, axis=2)
-    h = 60 * ((target_img[:, :, 1] - target_img[:, :, 2]) / (ch_wise_max - ch_wise_min))
-    h[ch_wise_max == target_img[:, :, 1]] = (60 * ((target_img[:, :, 2] - target_img[:, :, 0]) / (ch_wise_max - ch_wise_min)) + 120)[ch_wise_max == target_img[:, :, 1]]
-    h[ch_wise_max == target_img[:, :, 2]] = (60 * ((target_img[:, :, 0] - target_img[:, :, 1]) / (ch_wise_max - ch_wise_min)) + 240)[ch_wise_max == target_img[:, :, 2]]
-    h[h < 0] = h[h < 0] + 360
-    h[(target_img[:, :, 0] == target_img[:, :, 1]) * (target_img[:, :, 0] == target_img[:, :, 2])] = 0
-    s = (ch_wise_max - ch_wise_min) / ch_wise_max
-    v = ch_wise_max
-    return np.concatenate([h[:, :, np.newaxis], s[:, :, np.newaxis], v[:, :, np.newaxis]], axis=2) / 360
+
+def rgb_to_hsv(tgt_img):
+    """
+    rgb画像をhsvに変換する。
+    colorsys.rgb_to_hsvと計算誤差程度のずれはあるが一致をする。
+    :param tgt_img: rgb画像
+    :return:
+    """
+    max_color = np.nanmax(tgt_img, axis=2)
+    min_color = np.nanmin(tgt_img, axis=2)
+    color_range = max_color - min_color
+    h = 60 / 360 * ((tgt_img[:, :, 1] - tgt_img[:, :, 2]) / color_range)
+    h[max_color == tgt_img[:, :, 1]] = (60 / 360 * ((tgt_img[:, :, 2] - tgt_img[:, :, 0]) / color_range) + 120 / 360)[max_color == tgt_img[:, :, 1]]
+    h[max_color == tgt_img[:, :, 2]] = (60 / 360 * ((tgt_img[:, :, 0] - tgt_img[:, :, 1]) / color_range) + 240 / 360)[max_color == tgt_img[:, :, 2]]
+    h[h < 0] = h[h < 0] + 1
+    h[(tgt_img[:, :, 0] == tgt_img[:, :, 1]) * (tgt_img[:, :, 0] == tgt_img[:, :, 2])] = 0
+    s = color_range / max_color
+    s[np.isnan(s)] = 0
+    # v = max_color
+    return np.concatenate([h[:, :, np.newaxis], s[:, :, np.newaxis], max_color[:, :, np.newaxis]], axis=2)
+
+
+def hsv_to_rgb(tgt_img):
+    """
+    hsv画像をrgbに変換する。
+    colorsys.hsv_to_rgbと計算誤差程度のずれはあるが一致をする。
+    :param tgt_img: hsv画像
+    :return:
+    """
+    i = tgt_img[:, :, 0] * 6
+    f = i - np.floor(i)
+    p = (tgt_img[:, :, 2] * (1 - tgt_img[:, :, 1]))[:, :, np.newaxis]
+    q = (tgt_img[:, :, 2] * (1 - tgt_img[:, :, 1] * f))[:, :, np.newaxis]
+    t = (tgt_img[:, :, 2] * (1 - tgt_img[:, :, 1] * (1 - f)))[:, :, np.newaxis]
+    v = (tgt_img[:, :, 2])[:, :, np.newaxis]
+    i = np.tile(np.mod(np.floor(i), 6)[:, :, np.newaxis], (1, 1, 3))
+    out_img = np.concatenate([v, t, p], axis=2)
+    out_img[i == 1] = np.concatenate([q, v, p], axis=2)[i == 1]
+    out_img[i == 2] = np.concatenate([p, v, t], axis=2)[i == 2]
+    out_img[i == 3] = np.concatenate([p, q, v], axis=2)[i == 3]
+    out_img[i == 4] = np.concatenate([t, p, v], axis=2)[i == 4]
+    out_img[i == 5] = np.concatenate([v, p, q], axis=2)[i == 5]
+    return out_img
 
 ######################################################################################################################## WB
 def wb_for_bayer(target_img,gain,raw_mode):
