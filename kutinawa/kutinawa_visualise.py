@@ -427,6 +427,14 @@ def q_hotkey__visible(event,config_list):
 def q_hotkey_util__gca(config_list):
     return [cl for cl in config_list if plt.gca()==cl.ax][0]
 
+############################################################################ home
+def q_hotkey__reset(event,config_list):
+    init_xy_pos = [[-0.5, config_list[0].w_max - 0.5], [config_list[0].h_max - 0.5, -0.5]]
+    config_list[0].ax.set_xlim(init_xy_pos[0][0], init_xy_pos[0][1])
+    config_list[0].ax.set_ylim(init_xy_pos[1][0], init_xy_pos[1][1])
+    config_list[0].fig.canvas.draw()
+    pass
+
 ############################################################################ add diff mul div
 def q_hotkey_util__admd(event,config_list,mode):
     def shape_arrange(img1,img2):
@@ -615,7 +623,7 @@ def q_hotkey__roipixval(event,config_list):
     for now_config in config_list:
         temp_img,pos = now_config.get_roi_img()
 
-        ax = ana_fig.add_subplot(config_list[-1].y_id+1, config_list[-1].x_id+1, now_config.ax_id, picker=True)
+        ax = ana_fig.add_subplot(config_list[-1].y_id_max, config_list[-1].x_id_max, now_config.ax_id, picker=True)
         ax.imshow(temp_img, interpolation='nearest',cmap=now_config.cmap)
 
         ys, xs = np.meshgrid(range(temp_img.shape[0]), range(temp_img.shape[1]), indexing='ij')
@@ -625,19 +633,19 @@ def q_hotkey__roipixval(event,config_list):
             for (xi, yi, val) in zip(xs.flatten(), ys.flatten(), temp_img.flatten()):
                 ax.text(xi, yi, '{0:.2f}'.format(val),
                         horizontalalignment='center', verticalalignment=v_a[xi%2],
-                        color='#ff21cb',fontweight='bold',fontsize=13)
+                        color='#ff21cb',fontweight='bold',fontsize=8)
         elif np.ndim(temp_img)==3:
             for (xi, yi, val_0ch, val_1ch, val_2ch) in zip(xs.flatten(), ys.flatten(),
                                                            temp_img[:,:,0].flatten(), temp_img[:,:,1].flatten(), temp_img[:,:,2].flatten()):
                 ax.text(xi, yi-0.25, '{0:.2f}'.format(val_0ch),
                         horizontalalignment='center', verticalalignment='center',
-                        color='#ff2a00',fontweight='bold',fontsize=13)
+                        color='#ff2a00',fontweight='bold',fontsize=8)
                 ax.text(xi, yi, '{0:.2f}'.format(val_1ch),
                         horizontalalignment='center', verticalalignment='center',
-                        color='#00ff40',fontweight='bold',fontsize=13)
+                        color='#00ff40',fontweight='bold',fontsize=8)
                 ax.text(xi, yi+0.25, '{0:.2f}'.format(val_2ch),
                         horizontalalignment='center', verticalalignment='center',
-                        color='#0048ff',fontweight='bold',fontsize=13)
+                        color='#0048ff',fontweight='bold',fontsize=8)
 
     ana_fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)# 表示範囲調整
     q_util_main_figure_close(config_list[0].fig, ana_fig)
@@ -734,7 +742,9 @@ def q_hotkey_util__lineprof(config_list,event,mode):
     plot_sub_ax = ana_fig.add_subplot(2,len(config_list),(1,len(config_list)),picker=True)
     for cn,now_config in enumerate(config_list):
         line_img,pos = now_config.get_part_img(x_pos=line_img_xpos,y_pos=line_img_ypos)
-        # print(line_img,pos)
+
+
+
         ####################### plot
         if np.ndim(line_img)==2:
             plot_sub_ax.plot(np.arange(pos[line_plot_idx][0],pos[line_plot_idx][1]),
@@ -743,13 +753,18 @@ def q_hotkey_util__lineprof(config_list,event,mode):
         elif np.ndim(line_img)==3:
             plot_sub_ax.plot(np.arange(pos[line_plot_idx][0],pos[line_plot_idx][1]),
                              np.squeeze(np.mean(line_img[:,:,0],axis=line_plot_idx)),
-                             label=str(now_config.ax_id)+'(0ch)')
+                             label=str(now_config.ax_id)+'(0ch)',
+                             color=(0.75, np.clip(cn/len(config_list)-0.5,0,1), np.clip(-cn/len(config_list)+0.5,0,1)) )
             plot_sub_ax.plot(np.arange(pos[line_plot_idx][0],pos[line_plot_idx][1]),
                              np.squeeze(np.mean(line_img[:,:,1],axis=line_plot_idx)),
-                             label=str(now_config.ax_id)+'(1ch)')
+                             label=str(now_config.ax_id)+'(1ch)',
+                             color=(np.clip(cn/len(config_list)-0.5,0,1), 0.75, np.clip(-cn/len(config_list)+0.5,0,1)) )
             plot_sub_ax.plot(np.arange(pos[line_plot_idx][0],pos[line_plot_idx][1]),
                              np.squeeze(np.mean(line_img[:,:,2],axis=line_plot_idx)),
-                             label=str(now_config.ax_id)+'(2ch)')
+                             label=str(now_config.ax_id)+'(2ch)',
+                             color=(np.clip(cn/len(config_list)-0.5,0,1), np.clip(-cn/len(config_list)+0.5,0,1), 0.75) )
+            # print((1, np.clip(-cn/len(config_list)+0.5,0,1), np.clip(cn/len(config_list)-0.5,0,1)))
+
 
         ####################### image
         part_img,aaa   = now_config.get_part_img(x_pos=img_xlim,y_pos=img_ylim)
@@ -1069,7 +1084,8 @@ def q_util_imshow_for_imageq(q_conf):
     # 3,4ch画像をcmin~cmaxのレンジで正規化するため、値域調整 & 4ch以上の画像は表示できないのでエラー返して終了
     if np.ndim(q_conf.data) in [3, 4]:
         print("imageq-Warning: The image was normalized to 0-1 and clipped in the cmin-cmax range for a 3-channel image.")
-        q_conf.data = np.clip((q_conf.data.astype('float64') - q_conf.cmin[q_conf.state]) / (q_conf.cmax[q_conf.state] - q_conf.cmin[q_conf.state]), 0, 1)
+        q_conf.data = np.clip((q_conf.data - q_conf.cmin[q_conf.state]) / (q_conf.cmax[q_conf.state] - q_conf.cmin[q_conf.state]), 0, 1)
+        # print(q_conf.data.dtype)
     elif np.ndim(q_conf.data)==1 or np.ndim(q_conf.data)>4:
         print("imageq-Warning: Cannot draw data other than 2-, 3-, and 4-dimensional.")
         return -1
@@ -1114,18 +1130,19 @@ def imageq(target_img_list,caxis_list=(0,0),cmap_list='viridis',disp_cbar_list=T
                 ax = fig.add_subplot(y_id_max,x_id_max,ax_id,picker=True)
             else:
                 ax = fig.add_subplot(y_id_max,x_id_max,ax_id,picker=True,sharex=config_list[0].ax,sharey=config_list[0].ax)
-            config_list.append(q_config(fig=fig, ax=ax, ax_id=x_id_max*y_id+x_id+1, y_id=y_id, x_id=x_id,y_id_max=y_id_max,x_id_max=x_id_max,
+            config_list.append(q_config(fig=fig, ax=ax, ax_id=x_id_max*y_id+x_id+1, y_id=y_id, x_id=x_id, y_id_max=y_id_max, x_id_max=x_id_max,
                                         data=target_img.astype(float),
                                         cmin=caxis_list[y_id][x_id][0], cmax=caxis_list[y_id][x_id][1],
                                         cmap=cmap_list[y_id][x_id], cbar=disp_cbar_list[y_id][x_id],
                                         roi=patches.Rectangle(xy=(-11.5, -11.5), width=11, height=11, ec='red', fill=False),
-                                        min=np.nanmin(target_img), max=np.nanmax(target_img),
+                                        min=np.nanmin(target_img.astype(float)), max=np.nanmax(target_img.astype(float)),
                                         h=np.shape(target_img)[0], w=np.shape(target_img)[1], h_max=h_max, w_max=w_max, ))
             q_util_imshow_for_imageq(q_conf=config_list[-1])
 
     ############################### キーボードショートカット追加
     q_basic(config_list=config_list,init_xy_pos=[[-0.5, w_max-0.5],[h_max-0.5, -0.5]],yud_mode=1,
             keyboard_dict={'P':q_hotkey__png_save,
+                           'tab':q_hotkey__reset,
                            'D':q_hotkey__diff,'+':q_hotkey__add,'*':q_hotkey__mul,'/':q_hotkey__div,
                            'left':q_hotkey__climMANUAL_top_down, 'right':q_hotkey__climMANUAL_btm_up, 'up':q_hotkey__climMANUAL_slide_up, 'down':q_hotkey__climMANUAL_slide_down,
                            'alt+left':q_hotkey__climMANUAL_top_up, 'alt+right':q_hotkey__climMANUAL_btm_down,
@@ -1166,40 +1183,40 @@ def imageq(target_img_list,caxis_list=(0,0),cmap_list='viridis',disp_cbar_list=T
     pass
 
 
-# def imageq2(target_img_list, caxis_list, cmap_list, disp_cbar_list, view_mode='tile'):
-
-import kutinawa as wa
-# target_img_list = [[wa.imread('lena_bw.tiff'),wa.imread('lena.tiff'),wa.imread('fig_ready-made_10.png')]]
-target_img_list = [[wa.imread('lena_bw.tiff')],
-                    wa.imread('lena_bw.tiff')+20,
-                    wa.imread('lena_bw.tiff')+wa.generate_gaussian_random_array((512,512))*30]
-caxis_list = [[(64,196),(128,196),(64,196)]]
-cmap_list = [['viridis','viridis','viridis']]
-disp_cbar_list = [[True,True,True]]
-# imageq(target_img_list,cmap_list=wa.cmap_out_range_color(over_color='red'))
-
-# target_img_list = [[wa.imread('lena_bw.tiff'),wa.imread('lena.tiff'),wa.imread('fig_ready-made_10.png')]]
-target_img_list = [[wa.imread('lena_bw.tiff')],
-                   [wa.imread('lena_bw.tiff')+20,
-                   wa.imread('lena_bw.tiff')+wa.generate_gaussian_random_array((512,512))*30]]
-# histq(input_list=target_img_list,overlay=False,label_list=[['a'],['b','c']])
-# plotq(input_list_x=target_img_list,overlay=True,label_list=[['a'],['b','c']],marker_list='o',linewidth_list=0)
-# plotq(input_list_x=[[np.random.randn(10),np.array([])],[]],overlay=False,label_list=[['a',' '],[]],marker_list='o',linewidth_list=0)
-# plotq(input_list_x=[[],[np.random.randn(100)]],overlay=False,label_list=[[],['b']],marker_list='o',linewidth_list=0,fig=fig)
+# # def imageq2(target_img_list, caxis_list, cmap_list, disp_cbar_list, view_mode='tile'):
 #
-# plotq(input_list_x=[[np.random.randn(10),np.random.randn(10),np.random.randn(10)],[]],overlay=False,label_list=[['a','b','c'],[]],marker_list='o',linewidth_list=0)
-
-aaa = wa.imread('lena.tiff')
-bbb = wa.imread('lena_bw.tiff')
-# imageq([[aaa],[aaa,bbb],[aaa,bbb,aaa]],cmap_list=wa.cmap_out_range_color(over_color='red'))
-# imageq([[aaa,bbb,aaa],[aaa],[aaa,bbb],],cmap_list=wa.cmap_out_range_color(over_color='red'))
+# import kutinawa as wa
+# # target_img_list = [[wa.imread('lena_bw.tiff'),wa.imread('lena.tiff'),wa.imread('fig_ready-made_10.png')]]
+# target_img_list = [[wa.imread('lena_bw.tiff')],
+#                     wa.imread('lena_bw.tiff')+20,
+#                     wa.imread('lena_bw.tiff')+wa.generate_gaussian_random_array((512,512))*30]
+# caxis_list = [[(64,196),(128,196),(64,196)]]
+# cmap_list = [['viridis','viridis','viridis']]
+# disp_cbar_list = [[True,True,True]]
+# # imageq(target_img_list,cmap_list=wa.cmap_out_range_color(over_color='red'))
 #
-# imageq([[bbb],[bbb,bbb]],cmap_list=wa.cmap_out_range_color(over_color='red'))
-
-imageq([aaa,bbb],caxis_list = (0,255),cmap_list=wa.cmap_out_range_color(over_color='red'))
-
-# wa.imageq([[aaa],[aaa,bbb]],cmap_list=wa.cmap_out_range_color(over_color='red'))
-
+# # target_img_list = [[wa.imread('lena_bw.tiff'),wa.imread('lena.tiff'),wa.imread('fig_ready-made_10.png')]]
+# target_img_list = [[wa.imread('lena_bw.tiff')],
+#                    [wa.imread('lena_bw.tiff')+20,
+#                    wa.imread('lena_bw.tiff')+wa.generate_gaussian_random_array((512,512))*30]]
+# # histq(input_list=target_img_list,overlay=False,label_list=[['a'],['b','c']])
+# # plotq(input_list_x=target_img_list,overlay=True,label_list=[['a'],['b','c']],marker_list='o',linewidth_list=0)
+# # plotq(input_list_x=[[np.random.randn(10),np.array([])],[]],overlay=False,label_list=[['a',' '],[]],marker_list='o',linewidth_list=0)
+# # plotq(input_list_x=[[],[np.random.randn(100)]],overlay=False,label_list=[[],['b']],marker_list='o',linewidth_list=0,fig=fig)
+# #
+# # plotq(input_list_x=[[np.random.randn(10),np.random.randn(10),np.random.randn(10)],[]],overlay=False,label_list=[['a','b','c'],[]],marker_list='o',linewidth_list=0)
+#
+# aaa = wa.imread('lena.tiff')
+# bbb = wa.imread('lena_bw.tiff')
+# # imageq([[aaa],[aaa,bbb],[aaa,bbb,aaa]],cmap_list=wa.cmap_out_range_color(over_color='red'))
+# # imageq([[aaa,bbb,aaa],[aaa],[aaa,bbb],],cmap_list=wa.cmap_out_range_color(over_color='red'))
+# #
+# # imageq([[bbb],[bbb,bbb]],cmap_list=wa.cmap_out_range_color(over_color='red'))
+#
+# imageq([aaa,bbb],caxis_list = (0,255),cmap_list=wa.cmap_out_range_color(over_color='red'))
+#
+# # wa.imageq([[aaa],[aaa,bbb]],cmap_list=wa.cmap_out_range_color(over_color='red'))
+#
 
 
 
