@@ -435,6 +435,10 @@ def q_hotkey__reset(event,config_list):
     config_list[0].fig.canvas.draw()
     pass
 
+def q_hotkey__maximumwindow(event,config_list):
+    plt.get_current_fig_manager().full_screen_toggle()
+    pass
+
 ############################################################################ add diff mul div
 def q_hotkey_util__admd(event,config_list,mode):
     def shape_arrange(img1,img2):
@@ -573,7 +577,9 @@ def q_hotkey__roiwidthUP(event,config_list):
 def q_hotkey__roiheightUP(event,config_list):
     for now_config in config_list:
         now_config.roi.set_height(now_config.roi.get_height() + 2)
-    config_list[0].fig.canvas.draw()
+    # config_list[0].fig.canvas.draw()
+    config_list[0].fig.canvas.update()
+    config_list[0].fig.canvas.flush_events()
     pass
 
 def q_hotkey__roiwidthDOWN(event,config_list):
@@ -946,8 +952,11 @@ def plotq(input_list_x,
             y_spc = (yyy[1]-yyy[0])*0.0495
     ############################### キーボードショートカット追加
     q_basic(config_list=config_list,init_xy_pos=[[xxx[0]-x_spc, xxx[1]+x_spc], [yyy[0]-y_spc, yyy[1]+y_spc]],yud_mode=0,
-            keyboard_dict={# png保存
+            keyboard_dict={
+                # png保存
                 'P':q_hotkey__png_save,
+                # 表示操作
+                'tab': q_hotkey__reset,' ':q_hotkey__maximumwindow,
                 # visible
                 'f1':q_hotkey__visible,'f2':q_hotkey__visible,'f3':q_hotkey__visible,'f4':q_hotkey__visible,'f5':q_hotkey__visible,'f6':q_hotkey__visible,
                 'f7':q_hotkey__visible,'f8':q_hotkey__visible,'f9':q_hotkey__visible,'f10':q_hotkey__visible,'f11':q_hotkey__visible,'f12':q_hotkey__visible,
@@ -1055,8 +1064,11 @@ def histq(input_list,
 
     ############################### キーボードショートカット追加
     q_basic(config_list=config_list,init_xy_pos=[[x_min-x_spc, x_max+x_spc],[0, y_max*1.05]],yud_mode=0,
-            keyboard_dict={# png保存
+            keyboard_dict={
+                # png保存
                 'P':q_hotkey__png_save,
+                # 表示操作
+                'tab': q_hotkey__reset,' ':q_hotkey__maximumwindow,
                 # visible
                 'f1':q_hotkey__visible,'f2':q_hotkey__visible,'f3':q_hotkey__visible,'f4':q_hotkey__visible,'f5':q_hotkey__visible,'f6':q_hotkey__visible,
                 'f7':q_hotkey__visible,'f8':q_hotkey__visible,'f9':q_hotkey__visible,'f10':q_hotkey__visible,'f11':q_hotkey__visible,'f12':q_hotkey__visible,
@@ -1142,7 +1154,7 @@ def imageq(target_img_list,caxis_list=(0,0),cmap_list='viridis',disp_cbar_list=T
     ############################### キーボードショートカット追加
     q_basic(config_list=config_list,init_xy_pos=[[-0.5, w_max-0.5],[h_max-0.5, -0.5]],yud_mode=1,
             keyboard_dict={'P':q_hotkey__png_save,
-                           'tab':q_hotkey__reset,
+                           'tab':q_hotkey__reset,' ':q_hotkey__maximumwindow,
                            'D':q_hotkey__diff,'+':q_hotkey__add,'*':q_hotkey__mul,'/':q_hotkey__div,
                            'left':q_hotkey__climMANUAL_top_down, 'right':q_hotkey__climMANUAL_btm_up, 'up':q_hotkey__climMANUAL_slide_up, 'down':q_hotkey__climMANUAL_slide_down,
                            'alt+left':q_hotkey__climMANUAL_top_up, 'alt+right':q_hotkey__climMANUAL_btm_down,
