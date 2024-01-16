@@ -605,7 +605,7 @@ def q_hotkey__roireset(event,config_list):
 def q_hotkey__roistats(event,config_list):
     pos = config_list[0].get_roi_pos()
     print('=== ROI stats === ' + ' (x='+str(pos[0])+'~'+str(pos[1])+', y='+str(pos[2])+'~'+str(pos[3])+')' )
-    print( 'img#'.ljust(4)+'\t'
+    print( 'img#'.ljust(9)+'\t'
           +'mean'.ljust(20)+'\t'
           +'max'.ljust(20)+'\t'
           +'min'.ljust(20)+'\t'
@@ -613,12 +613,21 @@ def q_hotkey__roistats(event,config_list):
           +'std'.ljust(20)+'\t')
     for now_config in config_list:
         temp_img,pos = now_config.get_roi_img()
-        print( str(now_config.ax_id      ).ljust(4)+'\t'
-              +str(np.nanmean(temp_img)  ).ljust(20)+'\t'
-              +str(np.nanmax(temp_img)   ).ljust(20)+'\t'
-              +str(np.nanmin(temp_img)   ).ljust(20)+'\t'
-              +str(np.nanmedian(temp_img)).ljust(20)+'\t'
-              +str(np.nanstd(temp_img)   ).ljust(20)+'\t')
+        if np.ndim(temp_img)==2:
+            print( str(now_config.ax_id      ).ljust( 9)+'\t'
+                  +str(np.nanmean(temp_img)  ).ljust(20)+'\t'
+                  +str(np.nanmax(temp_img)   ).ljust(20)+'\t'
+                  +str(np.nanmin(temp_img)   ).ljust(20)+'\t'
+                  +str(np.nanmedian(temp_img)).ljust(20)+'\t'
+                  +str(np.nanstd(temp_img)   ).ljust(20)+'\t')
+        elif np.ndim(temp_img) == 3:
+            for c in np.arange(np.shape(temp_img)[2]):
+                print( (str(now_config.ax_id)+' ('+str(c)+'ch)').ljust( 9)+'\t'
+                      +str(np.nanmean(temp_img[:,:,c])  ).ljust(20)+'\t'
+                      +str(np.nanmax(temp_img[:,:,c])   ).ljust(20)+'\t'
+                      +str(np.nanmin(temp_img[:,:,c])   ).ljust(20)+'\t'
+                      +str(np.nanmedian(temp_img[:,:,c])).ljust(20)+'\t'
+                      +str(np.nanstd(temp_img[:,:,c])   ).ljust(20)+'\t')
     print('')
     pass
 
