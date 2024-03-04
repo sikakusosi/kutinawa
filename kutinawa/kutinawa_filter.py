@@ -176,12 +176,22 @@ def variance_filter(target_img,fil):
 
 def covariance_filter(target_img1,target_img2,fil):
     """
-    局所分散を計算する
+    局所共分散を計算する
     :param target_img1 ,target_img2: 対象画像
     :param fil                     : フィルタ、総和が1であること
     :return                        : 局所共分散画像（計算誤差で0を割ることがある）
     """
     return ndimage.convolve(target_img1*target_img2, fil, mode='mirror')-ndimage.convolve(target_img1, fil, mode='mirror')*ndimage.convolve(target_img2, fil, mode='mirror')
+
+def correlation_filter(target_img1,target_img2,fil):
+    """
+    局所共分散を計算する
+    :param target_img1 ,target_img2: 対象画像
+    :param fil                     : フィルタ、総和が1であること
+    :return                        : 局所相関画像
+    """
+    return covariance_filter(target_img1, target_img2, fil) / (np.sqrt(variance_filter(target_img1,fil))*np.sqrt(variance_filter(target_img2,fil)))
+
 
 def fast_box_variance_filter(target_img,fil_h,fil_w):
     """
