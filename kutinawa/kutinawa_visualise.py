@@ -17,6 +17,8 @@ from matplotlib import pylab
 
 from matplotlib.widgets import RectangleSelector
 
+from .kutinawa_depot import weighted_least_squares
+
 # https://patorjk.com/software/taag/#p=display&f=Graffiti&t=Type%20Something%20      Font "Doh"
 
 """━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━                                                                                                                                                                                                                                                        
@@ -65,6 +67,91 @@ kutinawa_color = ['#FF7171','#57B8FF','#9DDD15','#FF8D44','#7096F8','#51B883','#
                   '#EC0000','#0066BE','#618E00','#C74700','#0031D8','#197A48','#A58000','#5C10BE','#008299','#AA00AA',
                   '#FFDADA','#DCF0FF','#D0F5A2','#FFDFCA','#D9E6FF','#C2E5D1','#FFF0B3','#ECDDFF','#C8F8FF','#FFD0FF',]
 
+"""━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━                                                                                                                                                                                                                                                        
+PPPPPPPPPPPPPPPPP                                   iiii                                       tttt          
+P::::::::::::::::P                                 i::::i                                   ttt:::t          
+P::::::PPPPPP:::::P                                 iiii                                    t:::::t          
+PP:::::P     P:::::P                                                                        t:::::t          
+  P::::P     P:::::P     rrrrr   rrrrrrrrr        iiiiiii      nnnn  nnnnnnnn         ttttttt:::::ttttttt    
+  P::::P     P:::::P     r::::rrr:::::::::r       i:::::i      n:::nn::::::::nn       t:::::::::::::::::t    
+  P::::PPPPPP:::::P      r:::::::::::::::::r       i::::i      n::::::::::::::nn      t:::::::::::::::::t    
+  P:::::::::::::PP       rr::::::rrrrr::::::r      i::::i      nn:::::::::::::::n     tttttt:::::::tttttt    
+  P::::PPPPPPPPP          r:::::r     r:::::r      i::::i        n:::::nnnn:::::n           t:::::t          
+  P::::P                  r:::::r     rrrrrrr      i::::i        n::::n    n::::n           t:::::t          
+  P::::P                  r:::::r                  i::::i        n::::n    n::::n           t:::::t          
+  P::::P                  r:::::r                  i::::i        n::::n    n::::n           t:::::t    tttttt
+PP::::::PP                r:::::r                 i::::::i       n::::n    n::::n           t::::::tttt:::::t
+P::::::::P                r:::::r                 i::::::i       n::::n    n::::n           tt::::::::::::::t
+P::::::::P                r:::::r                 i::::::i       n::::n    n::::n             tt:::::::::::tt
+PPPPPPPPPP                rrrrrrr                 iiiiiiii       nnnnnn    nnnnnn               ttttttttttt                                                                                                                                                                                                                                                     
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
+def table_print(data,headers=[],table_mode='adapt',format_alignment='<',format_min_w=12,format_significant_digits=5):
+    """
+    ２次元listを表としてprintする
+    :param data:                                       表にしたいデータ、現状2jigennlistのみ
+    :param headers:                                    列ごとのヘッダー、１次元list
+    :param table_mode:                'adapt', 'equal' 表の幅を列ごとに変える、すべて同じ
+    :param format_alignment:          '<', '^', '>'    文字の右寄せ、中央、左寄せ
+    :param format_min_w:                               テキストの最小幅、数値
+    :param format_significant_digits:                  小数の有効桁
+    :return:
+    """
+    temp_format = '{:' + format_alignment + str(format_min_w) + '.' + str(format_significant_digits) + 'f}' #'{:<12.5f}'
+    # temp_format_header = '{:' + format_alignment + str(format_min_w) + '}'
+
+    #dataを必ず充填済みの２次元listにする
+    table_hw = np.shape(data)
+
+    # header不足があれば追加
+    lh = len(headers)
+    if len(headers)<table_hw[1]:
+        for i in np.arange(table_hw[1]-lh):
+            headers.append('Col '+str(i+lh))
+
+    # 表の横幅取得
+    # max_width_list = np.array([[len(temp_format.format(x)) for x in y] for y in data])
+    width_list = []
+    for y in data+[headers]:
+        width_list.append([])
+        for i,x in enumerate(y):
+            if type(x) is str:
+                now_pf = '{:' + format_alignment + str(format_min_w) + '}'
+            else:
+                now_pf = '{:' + format_alignment + str(format_min_w) + '.' + str(format_significant_digits) + 'f}'
+            width_list[-1].append( len(now_pf.format(x)) )
+    width_list = np.array(width_list)
+
+    if table_mode=='equal':
+        temp = np.max(width_list)
+        max_width_list = [temp for i in np.arange(table_hw[1])]
+    elif table_mode=='adapt':
+        max_width_list = [np.max(width_list[:,i]) for i in np.arange(table_hw[1])]
+
+    # print
+    print(end='│')
+    for i,hd in enumerate(headers):
+        now_pf = '{:' + format_alignment + str(max_width_list[i]) + '}'
+        print(now_pf.format(hd), end='│')
+
+    print(end='\n╞')
+    for i,hd in enumerate(headers[:-1]):
+        now_pf = '{:' + format_alignment + str(max_width_list[i]) + '}'
+        print(now_pf.format('═' * max_width_list[i]), end='╪')
+    now_pf = '{:' + format_alignment + str(max_width_list[-1]) + '}'
+    print(now_pf.format('═' * max_width_list[-1]), end='╡')
+
+    for y in data:
+        print(end='\n│')
+        for i,x in enumerate(y):
+            if type(x) is str:
+                now_pf = '{:' + format_alignment + str(max_width_list[i]) + '}'
+            else:
+                now_pf = '{:' + format_alignment + str(max_width_list[i]) + '.' + str(format_significant_digits) + 'f}'
+            print(now_pf.format(x), end='│')
+
+    print("")
+    pass
+
 """━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━                                                                      
                                 tttt                 iiii       lllllll 
                              ttt:::t                i::::i      l:::::l 
@@ -109,6 +196,23 @@ def close_all():
 def tolist_0dim(target_array):
     return [i for i in target_array]
 
+def tolist_only1axis(tgt_array, axis):
+    axis_temp = np.arange(np.ndim(tgt_array))
+    return [i for i in np.transpose(tgt_array, tuple([axis] + (axis_temp[axis_temp != axis]).tolist()))]
+
+def list1toSQ2(tgt_list):
+    sub_x = np.ceil(np.sqrt(len(tgt_list))).astype(int)
+    sub_y = np.ceil(len(tgt_list) / sub_x).astype(int)
+    idx_l = np.arange(0,len(tgt_list),sub_x).tolist()+[len(tgt_list)]
+    return [tgt_list[idx_l[h]:idx_l[h+1]] for h in np.arange(sub_y)]
+
+def imq_inEASY(tgt_imgs,axis):
+    if isinstance(tgt_imgs, np.ndarray):
+        out_imgs = list1toSQ2(tolist_only1axis(tgt_imgs, axis))
+    else:
+        out_imgs = list1toSQ2(tgt_imgs)
+    return out_imgs
+
 def cmap_out_range_color(cmap_name='viridis',over_color='white',under_color='black',bad_color='red'):
     cm = pylab.cm.get_cmap(cmap_name)
     colors = cm.colors
@@ -144,7 +248,7 @@ def q_hotkey__climAUTO(fig, event, hotkey_use):
     now_lim_x = np.clip((np.array(c_axe.get_xlim()) + 0.5).astype(int),0,None)
     now_lim_y = np.clip((np.array(c_axe.get_ylim()) + 0.5).astype(int),0,None)
     temp = c_axe.images[0].get_array().data[now_lim_y[1]:now_lim_y[0], now_lim_x[0]:now_lim_x[1]]
-    c_axe.images[0].set_clim(np.nanmin(temp),np.nanmax(temp))
+    c_axe.images[0].set_clim((np.nanmin(temp[(temp!=-np.inf)*(temp!=np.inf)]), np.nanmax(temp[(temp!=-np.inf)*(temp!=np.inf)])))
     pass
 
 def q_hotkey__climWHOLE(fig, event, hotkey_use):
@@ -163,17 +267,47 @@ def q_hotkey__climEACH(fig, event, hotkey_use):
     now_lim_y = np.clip((np.array(axes_list[0].get_ylim()) + 0.5).astype(int),0,None)
     for axe in axes_list:
         temp = axe.images[0].get_array().data[now_lim_y[1]:now_lim_y[0], now_lim_x[0]:now_lim_x[1]]
-        axe.images[0].set_clim(np.nanmin(temp),np.nanmax(temp))
+        axe.images[0].set_clim((np.nanmin(temp[(temp!=-np.inf)*(temp!=np.inf)]), np.nanmax(temp[(temp!=-np.inf)*(temp!=np.inf)])))
     pass
 
 def q_hotkey__climSYNC(fig, event, hotkey_use):
     c_axe = fig.gca()
+    sync_clim = c_axe.images[0].get_clim()
     axes_list = [axe for axe in fig.get_axes() if isinstance(axe, matplotlib.axes._subplots.Subplot)]
-    new_clim = c_axe.images[0].get_clim()
     for axe in axes_list:
-        axe.images[0].set_clim(new_clim[0],new_clim[1])
+        axe.images[0].set_clim(sync_clim[0],sync_clim[1])
     pass
 
+def q_hotkey_util__climSYNCudlr(fig, event, hotkey_use, direction):
+    c_axe = fig.gca()
+    sync_clim = c_axe.images[0].get_clim()
+    sps = c_axe.get_subplotspec()
+    subplot_x, subplot_y = sps.colspan[0], sps.rowspan[0]
+
+    x_adj = {'up':0,'down':0,'left':-1,'right':1}
+    y_adj = {'up':-1,'down':1,'left':0,'right':0}
+    sync_tgt_x = subplot_x+x_adj[direction]
+    sync_tgt_y = subplot_y+y_adj[direction]
+
+    axes_list = [axe for axe in fig.get_axes() if isinstance(axe, matplotlib.axes._subplots.Subplot)]
+    for axe in axes_list:
+        sps = axe.get_subplotspec()
+        if sps.colspan[0]==sync_tgt_x and sps.rowspan[0]==sync_tgt_y:
+            axe.images[0].set_clim(sync_clim[0], sync_clim[1])
+    pass
+
+def q_hotkey__climSYNCup(fig, event, hotkey_use):
+    q_hotkey_util__climSYNCudlr(fig, event, hotkey_use, 'up')
+    pass
+def q_hotkey__climSYNCdown(fig, event, hotkey_use):
+    q_hotkey_util__climSYNCudlr(fig, event, hotkey_use, 'down')
+    pass
+def q_hotkey__climSYNCleft(fig, event, hotkey_use):
+    q_hotkey_util__climSYNCudlr(fig, event, hotkey_use, 'left')
+    pass
+def q_hotkey__climSYNCright(fig, event, hotkey_use):
+    q_hotkey_util__climSYNCudlr(fig, event, hotkey_use, 'right')
+    pass
 
 # ############################################################################ roi
 def q_hotkey__roistats(fig, event, hotkey_use):
@@ -240,6 +374,68 @@ def q_hotkey__roistats(fig, event, hotkey_use):
     pass
 
 
+def q_hotkey__roistats2(fig, event, hotkey_use):
+    active_roi_keys = [rk for rk in hotkey_use['roi_list'][0].keys() if hotkey_use['roi_list'][0][rk].get_height()>0]
+    axes_list = [axe for axe in fig.get_axes() if isinstance(axe,matplotlib.axes._subplots.Subplot)]
+
+    stats_list = np.zeros((len(axes_list),len(active_roi_keys))).tolist()
+    for axe_num in np.arange(len(axes_list)):
+        axes_img = axes_list[axe_num].images[0].get_array().data
+        for i,rk in enumerate(active_roi_keys):
+            tgt_roi = hotkey_use['roi_list'][axe_num][rk]
+            roi_x,roi_y = np.array(tgt_roi.get_xy())+0.5
+            roi_xx,roi_yy = roi_x+tgt_roi.get_width(), roi_y+tgt_roi.get_height()
+            roi_y,roi_yy,roi_x,roi_xx = int(roi_y),int(roi_yy),int(roi_x),int(roi_xx)
+            hw = np.shape(axes_img)
+            roi_y, roi_yy, roi_x, roi_xx = np.clip(roi_y,0,hw[0]), np.clip(roi_yy,0,hw[0]), np.clip(roi_x,0,hw[1]), np.clip(roi_xx,0,hw[1])
+            roi_img = axes_img[roi_y:roi_yy,roi_x:roi_xx,...]
+
+            stats_list[axe_num][i] = {'roi_x':roi_x,'roi_xx':roi_xx,
+                                      'roi_y':roi_y,'roi_yy':roi_yy,
+                                      'mean':np.nanmean(roi_img,axis=(0,1)),
+                                      'std' :np.nanstd(roi_img,axis=(0,1)),
+                                      'min' :np.nanmin(roi_img,axis=(0,1)),
+                                      'max' :np.nanmax(roi_img,axis=(0,1)),
+                                      'med' :np.nanmedian(roi_img,axis=(0,1)),}
+
+
+    print('======================== ROI stats ======================== ')
+    headers = ['img No.','mean (imgN/img0)','std (imgN/img0)','min (imgN/img0)','max (imgN/img0)','median (imgN/img0)']
+    for i,rk in enumerate(active_roi_keys):
+        print('ROI key='+ rk
+              +'    pos=['+str(stats_list[0][i]['roi_y'])+':'+str(stats_list[0][i]['roi_yy'])+', '+str(stats_list[0][i]['roi_x'])+':'+str(stats_list[0][i]['roi_xx'])+']'
+              +'    pixel num=' + str(stats_list[0][i]['roi_yy']-stats_list[0][i]['roi_y'])+'*'+str(stats_list[0][i]['roi_xx']-stats_list[0][i]['roi_x']) + '=' +str( (stats_list[0][i]['roi_yy']-stats_list[0][i]['roi_y'])*(stats_list[0][i]['roi_xx']-stats_list[0][i]['roi_x']) )
+              )
+
+        print_list = []
+        # print_list2= []
+        for axe_num in np.arange(len(axes_list)):
+            if np.shape(stats_list[axe_num][i]['mean']): #チャンネルが存在する画像の場合
+                for ch in np.arange(np.shape(stats_list[axe_num][i]['mean'])):
+                    print_list.append([str(axe_num)+' ('+str(ch)+'ch)',
+                                       '{:<12.5f}'.format(stats_list[axe_num][i]['mean'][ch]) +' ('+'{:<.2f}'.format(stats_list[axe_num][i]['mean'][ch]/stats_list[0][i]['mean'][ch]*100)  + '%)',
+                                       '{:<12.5f}'.format(stats_list[axe_num][i]['std'][ch])  +' ('+'{:<.2f}'.format(stats_list[axe_num][i]['std'][ch] /stats_list[0][i]['std'][ch] *100)  + '%)',
+                                       '{:<12.5f}'.format(stats_list[axe_num][i]['min'][ch])  +' ('+'{:<.2f}'.format(stats_list[axe_num][i]['min'][ch] /stats_list[0][i]['min'][ch] *100)  + '%)',
+                                       '{:<12.5f}'.format(stats_list[axe_num][i]['max'][ch])  +' ('+'{:<.2f}'.format(stats_list[axe_num][i]['max'][ch] /stats_list[0][i]['max'][ch] *100)  + '%)',
+                                       '{:<12.5f}'.format(stats_list[axe_num][i]['med'][ch])  +' ('+'{:<.2f}'.format(stats_list[axe_num][i]['med'][ch] /stats_list[0][i]['med'][ch] *100)  + '%)',
+                                       ])
+
+            else:
+                print_list.append([str(axe_num),
+                                   '{:<12.5f}'.format(stats_list[axe_num][i]['mean']) + ' (' + '{:<.2f}'.format(stats_list[axe_num][i]['mean']/stats_list[0][i]['mean'] * 100) + '%)',
+                                   '{:<12.5f}'.format(stats_list[axe_num][i]['std'])  + ' (' + '{:<.2f}'.format(stats_list[axe_num][i]['std'] /stats_list[0][i]['std'] * 100)  + '%)',
+                                   '{:<12.5f}'.format(stats_list[axe_num][i]['min'])  + ' (' + '{:<.2f}'.format(stats_list[axe_num][i]['min'] /stats_list[0][i]['min'] * 100)  + '%)',
+                                   '{:<12.5f}'.format(stats_list[axe_num][i]['max'])  + ' (' + '{:<.2f}'.format(stats_list[axe_num][i]['max'] /stats_list[0][i]['max'] * 100)  + '%)',
+                                   '{:<12.5f}'.format(stats_list[axe_num][i]['med'])  + ' (' + '{:<.2f}'.format(stats_list[axe_num][i]['med'] /stats_list[0][i]['med'] * 100)  + '%)',
+                                   ])
+
+        table_print(print_list,headers)
+        print('')
+        # table_print(print_list2,headers)
+        # print('')
+
+    pass
+
 def q_hotkey__roipixval(fig, event, hotkey_use):
     active_roi_keys = [rk for rk in hotkey_use['roi_list'][0].keys() if hotkey_use['roi_list'][0][rk].get_height() > 0]
     axes_list = [axe for axe in fig.get_axes() if isinstance(axe, matplotlib.axes._subplots.Subplot)]
@@ -295,8 +491,54 @@ def q_hotkey__roipixval(fig, event, hotkey_use):
 # def q_hotkey__roiscatter(fig, event, hotkey_use):
 #
 
-# def noise_analyze(fig, event, hotkey_use):
-#     active_roi_keys = [rk for rk in hotkey_use['roi_list'][0].keys() if hotkey_use['roi_list'][0][rk].get_height() > 0]
+def q_hotkey__noise_analyze(fig, event, hotkey_use):
+    active_roi_keys = [rk for rk in hotkey_use['roi_list'][0].keys() if hotkey_use['roi_list'][0][rk].get_height() > 0]
+    axes_list = [axe for axe in fig.get_axes() if isinstance(axe, matplotlib.axes._subplots.Subplot)]
+
+    for j, axe in enumerate(axes_list):
+        mean_list = []
+        var_list = []
+        for i, rk in enumerate(active_roi_keys):
+            tgt_roi = hotkey_use['roi_list'][0][rk]
+            roi_x,roi_y = np.array(tgt_roi.get_xy())+0.5
+            roi_xx,roi_yy = roi_x+tgt_roi.get_width(), roi_y+tgt_roi.get_height()
+            roi_y,roi_yy,roi_x,roi_xx = int(roi_y),int(roi_yy),int(roi_x),int(roi_xx)
+
+            axes_img = axe.images[0].get_array().data
+            hw = np.shape(axes_img)
+            roi_y, roi_yy, roi_x, roi_xx = np.clip(roi_y, 0, hw[0]), np.clip(roi_yy, 0, hw[0]), np.clip(roi_x, 0, hw[1]), np.clip(roi_xx, 0, hw[1])
+            part_img = axes_img[roi_y:roi_yy, roi_x:roi_xx]
+
+            mean_list.append(np.nanmean(part_img))
+            var_list.append(np.nanvar(part_img))
+
+        grad, intercept = weighted_least_squares(in_x=np.array(mean_list), in_y=np.array(var_list), weight=1/np.array(mean_list))
+        plotq([np.array(mean_list),np.array([0,np.max(mean_list)])], [np.array(var_list),np.array([intercept,np.max(mean_list)*grad+intercept])],
+              linewidth_list=[0,3],marker_list=['o',''])
+        print('grad='+str(grad), 'intercept='+str(intercept))
+    pass
+
+def q_hotkey__colorchecker(fig, event, hotkey_use):
+    axes_list = [axe for axe in fig.get_axes() if isinstance(axe, matplotlib.axes._subplots.Subplot)]
+    for j, axe in enumerate(axes_list):
+        tgt_roi = hotkey_use['roi_list'][j]['alt+0']
+        roi_x, roi_y = np.array(tgt_roi.get_xy()) + 0.5
+        roi_xx, roi_yy = roi_x + tgt_roi.get_width(), roi_y + tgt_roi.get_height()
+        roi_y, roi_yy, roi_x, roi_xx = int(roi_y), int(roi_yy), int(roi_x), int(roi_xx)
+
+        rk = ['1', '2', '3', '4', '5', '6',
+              '7', '8', '9', '0','ctrl+1', 'ctrl+2',
+              'ctrl+3', 'ctrl+4', 'ctrl+5', 'ctrl+6', 'ctrl+7', 'ctrl+8',
+              'ctrl+9', 'ctrl+0', 'alt+1', 'alt+2', 'alt+3', 'alt+4']
+        xn = (roi_xx-roi_x)/(40*6+6*5)
+        yn = (roi_yy-roi_y)/(40*4+6*3)
+        print(xn,yn)
+        for h in np.arange(4):
+            for w in np.arange(6):
+                # [roi[event.key].set(xy=(-0.5, -0.5), width=0, height=0) for roi in hotkey_use['roi_list']]
+                # [roi_text[event.key].set(x=-0.5, y=-0.5, alpha=0) for roi_text in hotkey_use['roi_text_list']]
+                hotkey_use['roi_list'][j][rk[h*6+w]].set(xy=(roi_x+xn*w*46+xn*0.2*40, roi_y+yn*h*46+yn*0.2*40), width=40*xn-xn*0.4*40, height=40*yn-yn*0.4*40)
+                hotkey_use['roi_text_list'][j][rk[h*6+w]].set(x=roi_x+xn*w*46+xn*0.2*40, y=roi_y+yn*h*46+yn*0.2*40, alpha=1)
 
 
 # ############################################################################ hist
@@ -693,7 +935,7 @@ def q_addon(fig,keyboard_dict=None,roi_coordinate='int'):
 
     #マウスモード初期化
     mouse_mode_dict = {'n': 'Normal', 'r': 'ROI'}
-    mouse_mode_color_dict = {'Normal': 'pink', 'ROI': 'red'}
+    mouse_mode_color_dict = {'Normal': 'white', 'ROI': 'red'}
     hotkey_use['mouse_mode'] = mouse_mode_dict['n']
 
     # axesリスト取得
@@ -725,7 +967,7 @@ def q_addon(fig,keyboard_dict=None,roi_coordinate='int'):
                                    state_modifier_keys={"square":'ctrl'},
                                    props=dict(
                                        facecolor='pink',
-                                       edgecolor='pink',
+                                       edgecolor='white',
                                        alpha=1,
                                        fill=False)
                                    ) for axe in axes_list]
@@ -1022,7 +1264,7 @@ def imageq(target_img_list, caxis_list=(0, 0), cmap_list='viridis', disp_cbar=Tr
     for y_id, temp_list in enumerate(target_img_list):
         for x_id, target_img in enumerate(temp_list):
             if caxis_list[y_id][x_id][1] - caxis_list[y_id][x_id][0] <= 0:
-                caxis_list[y_id][x_id] = (np.nanmin(target_img), np.nanmax(target_img))
+                caxis_list[y_id][x_id] = (np.nanmin(target_img[(target_img!=-np.inf)*(target_img!=np.inf)]), np.nanmax(target_img[(target_img!=-np.inf)*(target_img!=np.inf)]))
 
             ax = fig.add_subplot(y_id_max, x_id_max, x_id_max * y_id + x_id + 1, picker=True)
             if np.ndim(target_img) == 2:
@@ -1052,11 +1294,13 @@ def imageq(target_img_list, caxis_list=(0, 0), cmap_list='viridis', disp_cbar=Tr
 
 
     ############################### q機能追加
-    fig = q_addon(fig, keyboard_dict={'$': q_hotkey__roistats,
+    fig = q_addon(fig, keyboard_dict={'$': q_hotkey__roistats,'%': q_hotkey__roistats2,
                                       'z': q_hotkey__zoomplot,
                                       'A':q_hotkey__climAUTO,'W':q_hotkey__climWHOLE,'E':q_hotkey__climEACH,'S':q_hotkey__climSYNC,
+                                      'up':q_hotkey__climSYNCup,'down':q_hotkey__climSYNCdown,'left':q_hotkey__climSYNCleft,'right':q_hotkey__climSYNCright,
                                       '-':q_hotkey__lineprofH,'i':q_hotkey__lineprofV,'=':q_hotkey__lineprofHmean,'I':q_hotkey__lineprofVmean,
-                                      'm':q_hotkey__roipixval,'h':q_hotkey_util__hist
+                                      'm':q_hotkey__roipixval,'h':q_hotkey_util__hist,
+                                      'N':q_hotkey__noise_analyze,'c':q_hotkey__colorchecker
                                       })
 
     ###############################
@@ -1328,3 +1572,4 @@ def scatq(input_list_x,
           fig = fig,)
     pass
 
+# fig = imageq([np.random.rand(512,512),np.random.rand(512,512),wa.imread(r"C:\Users\daiki.nakagawa\Downloads\lena_gray.bmp")])
