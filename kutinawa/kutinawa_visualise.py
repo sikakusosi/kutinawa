@@ -1,10 +1,10 @@
-
 import itertools
 
 import datetime
 import numpy as np
 
 import matplotlib
+
 try:
     matplotlib.use('Qt5Agg')
 except:
@@ -16,8 +16,6 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib import pylab
 
 from matplotlib.widgets import RectangleSelector
-
-from .kutinawa_depot import weighted_least_squares
 
 # https://patorjk.com/software/taag/#p=display&f=Graffiti&t=Type%20Something%20      Font "Doh"
 
@@ -39,33 +37,43 @@ C:::::C                   o::::o     o::::o      l::::l      o::::o     o::::o  
      CCC::::::::::::C      oo:::::::::::oo      l::::::l      oo:::::::::::oo       r:::::r                 l::::::l     i::::::i      s:::::::::::ss               tt:::::::::::tt
         CCCCCCCCCCCCC        ooooooooooo        llllllll        ooooooooooo         rrrrrrr                 llllllll     iiiiiiii       sssssssssss                   ttttttttttt                                                                                                                                                
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
-matplotlib_colormap_list = [#Perceptually Uniform Sequential
+matplotlib_colormap_list = [  # Perceptually Uniform Sequential
     'viridis', 'plasma', 'inferno', 'magma', 'cividis',
-    #Sequential
+    # Sequential
     'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
     'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
     'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn',
-    #Sequential (2)
+    # Sequential (2)
     'binary', 'gist_yarg', 'gist_gray', 'gray', 'bone',
     'pink', 'spring', 'summer', 'autumn', 'winter', 'cool',
     'Wistia', 'hot', 'afmhot', 'gist_heat', 'copper',
-    #Diverging
+    # Diverging
     'PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu', 'RdYlBu',
     'RdYlGn', 'Spectral', 'coolwarm', 'bwr', 'seismic',
-    #Cyclic
+    # Cyclic
     'twilight', 'twilight_shifted', 'hsv',
-    #Qualitative
+    # Qualitative
     'Pastel1', 'Pastel2', 'Paired', 'Accent', 'Dark2',
     'Set1', 'Set2', 'Set3', 'tab10', 'tab20', 'tab20b', 'tab20c',
-    #Miscellaneous
+    # Miscellaneous
     'flag', 'prism', 'ocean', 'gist_earth', 'terrain',
     'gist_stern', 'gnuplot', 'gnuplot2', 'CMRmap',
     'cubehelix', 'brg', 'gist_rainbow', 'rainbow', 'jet',
     'turbo', 'nipy_spectral', 'gist_ncar']
 
-kutinawa_color = ['#FF7171','#57B8FF','#9DDD15','#FF8D44','#7096F8','#51B883','#FFC700','#BB87FF','#2BC8E4','#F661F6',
-                  '#EC0000','#0066BE','#618E00','#C74700','#0031D8','#197A48','#A58000','#5C10BE','#008299','#AA00AA',
-                  '#FFDADA','#DCF0FF','#D0F5A2','#FFDFCA','#D9E6FF','#C2E5D1','#FFF0B3','#ECDDFF','#C8F8FF','#FFD0FF',]
+# kutinawa_color = ['#FF7171','#9DDD15','#57B8FF','#FF8D44','#51B883','#7096F8','#FFC700','#BB87FF','#2BC8E4','#F661F6',
+#                   '#EC0000','#0066BE','#618E00','#C74700','#0031D8','#197A48','#A58000','#5C10BE','#008299','#AA00AA',
+#                   '#FFDADA','#DCF0FF','#D0F5A2','#FFDFCA','#D9E6FF','#C2E5D1','#FFF0B3','#ECDDFF','#C8F8FF','#FFD0FF',]
+kutinawa_color = ['#EC0000', '#1fec00', '#0014ec',
+                  '#C74700', '#7ac402', '#008bc7',
+                  '#ff5454', '#c0ff54', '#5471ff',
+                  '#ff9b54', '#54ffb8', '#54fffc',
+                  '#a60000', '#0ea600', '#2f00a6',
+                  '#ff6200', '#00ffbb', '#00b7ff',
+                  '#ff8a93', '#a9ff8a', '#8ac5ff',
+                  '#ffb98a', '#8aff92', '#d48aff',
+                  '#d9026d', '#83d902', '#7802d9',
+                  '#ab0030', '#00ab7b', '#0083ab', ]
 
 """━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━                                                                                                                                                                                                                                                        
 PPPPPPPPPPPPPPPPP                                   iiii                                       tttt          
@@ -85,7 +93,10 @@ P::::::::P                r:::::r                 i::::::i       n::::n    n::::
 P::::::::P                r:::::r                 i::::::i       n::::n    n::::n             tt:::::::::::tt
 PPPPPPPPPP                rrrrrrr                 iiiiiiii       nnnnnn    nnnnnn               ttttttttttt                                                                                                                                                                                                                                                     
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
-def table_print(data,headers=[],table_mode='adapt',format_alignment='<',format_min_w=12,format_significant_digits=5):
+
+
+def table_print(data, headers=[], table_mode='adapt', format_alignment='<', format_min_w=12,
+                format_significant_digits=5):
     """
     ２次元listを表としてprintする
     :param data:                                       表にしたいデータ、現状2jigennlistのみ
@@ -96,45 +107,46 @@ def table_print(data,headers=[],table_mode='adapt',format_alignment='<',format_m
     :param format_significant_digits:                  小数の有効桁
     :return:
     """
-    temp_format = '{:' + format_alignment + str(format_min_w) + '.' + str(format_significant_digits) + 'f}' #'{:<12.5f}'
+    temp_format = '{:' + format_alignment + str(format_min_w) + '.' + str(
+        format_significant_digits) + 'f}'  # '{:<12.5f}'
     # temp_format_header = '{:' + format_alignment + str(format_min_w) + '}'
 
-    #dataを必ず充填済みの２次元listにする
+    # dataを必ず充填済みの２次元listにする
     table_hw = np.shape(data)
 
     # header不足があれば追加
     lh = len(headers)
-    if len(headers)<table_hw[1]:
-        for i in np.arange(table_hw[1]-lh):
-            headers.append('Col '+str(i+lh))
+    if len(headers) < table_hw[1]:
+        for i in np.arange(table_hw[1] - lh):
+            headers.append('Col ' + str(i + lh))
 
     # 表の横幅取得
     # max_width_list = np.array([[len(temp_format.format(x)) for x in y] for y in data])
     width_list = []
-    for y in data+[headers]:
+    for y in data + [headers]:
         width_list.append([])
-        for i,x in enumerate(y):
+        for i, x in enumerate(y):
             if type(x) is str:
                 now_pf = '{:' + format_alignment + str(format_min_w) + '}'
             else:
                 now_pf = '{:' + format_alignment + str(format_min_w) + '.' + str(format_significant_digits) + 'f}'
-            width_list[-1].append( len(now_pf.format(x)) )
+            width_list[-1].append(len(now_pf.format(x)))
     width_list = np.array(width_list)
 
-    if table_mode=='equal':
+    if table_mode == 'equal':
         temp = np.max(width_list)
         max_width_list = [temp for i in np.arange(table_hw[1])]
-    elif table_mode=='adapt':
-        max_width_list = [np.max(width_list[:,i]) for i in np.arange(table_hw[1])]
+    elif table_mode == 'adapt':
+        max_width_list = [np.max(width_list[:, i]) for i in np.arange(table_hw[1])]
 
     # print
     print(end='│')
-    for i,hd in enumerate(headers):
+    for i, hd in enumerate(headers):
         now_pf = '{:' + format_alignment + str(max_width_list[i]) + '}'
         print(now_pf.format(hd), end='│')
 
     print(end='\n╞')
-    for i,hd in enumerate(headers[:-1]):
+    for i, hd in enumerate(headers[:-1]):
         now_pf = '{:' + format_alignment + str(max_width_list[i]) + '}'
         print(now_pf.format('═' * max_width_list[i]), end='╪')
     now_pf = '{:' + format_alignment + str(max_width_list[-1]) + '}'
@@ -142,7 +154,7 @@ def table_print(data,headers=[],table_mode='adapt',format_alignment='<',format_m
 
     for y in data:
         print(end='\n│')
-        for i,x in enumerate(y):
+        for i, x in enumerate(y):
             if type(x) is str:
                 now_pf = '{:' + format_alignment + str(max_width_list[i]) + '}'
             else:
@@ -151,6 +163,7 @@ def table_print(data,headers=[],table_mode='adapt',format_alignment='<',format_m
 
     print("")
     pass
+
 
 """━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━                                                                      
                                 tttt                 iiii       lllllll 
@@ -170,21 +183,26 @@ u:::::::::::::::uu           t::::::tttt:::::t     i::::::i     l::::::l
   uu::::::::uu:::u             tt:::::::::::tt     i::::::i     l::::::l
     uuuuuuuu  uuuu               ttttttttttt       iiiiiiii     llllllll                                       
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
-def clim(cmin,cmax):
+
+
+def clim(cmin, cmax):
     for im in plt.gca().get_images():
-        im.set_clim(cmin,cmax)
+        im.set_clim(cmin, cmax)
     plt.gca().figure.canvas.draw()
     pass
 
-def xlim(xmin,xmax):
-    plt.gca().set_xlim(xmin,xmax)
+
+def xlim(xmin, xmax):
+    plt.gca().set_xlim(xmin, xmax)
     plt.gca().figure.canvas.draw()
     pass
 
-def ylim(ymin,ymax):
-    plt.gca().set_ylim(ymin,ymax)
+
+def ylim(ymin, ymax):
+    plt.gca().set_ylim(ymin, ymax)
     plt.gca().figure.canvas.draw()
     pass
+
 
 def close_all():
     for i in plt.get_fignums():
@@ -193,30 +211,35 @@ def close_all():
         plt.close()
     pass
 
+
 def tolist_0dim(target_array):
     return [i for i in target_array]
+
 
 def tolist_only1axis(tgt_array, axis):
     axis_temp = np.arange(np.ndim(tgt_array))
     return [i for i in np.transpose(tgt_array, tuple([axis] + (axis_temp[axis_temp != axis]).tolist()))]
 
+
 def list1toSQ2(tgt_list):
     sub_x = np.ceil(np.sqrt(len(tgt_list))).astype(int)
     sub_y = np.ceil(len(tgt_list) / sub_x).astype(int)
-    idx_l = np.arange(0,len(tgt_list),sub_x).tolist()+[len(tgt_list)]
-    return [tgt_list[idx_l[h]:idx_l[h+1]] for h in np.arange(sub_y)]
+    idx_l = np.arange(0, len(tgt_list), sub_x).tolist() + [len(tgt_list)]
+    return [tgt_list[idx_l[h]:idx_l[h + 1]] for h in np.arange(sub_y)]
 
-def imq_inEASY(tgt_imgs,axis):
+
+def imq_inEASY(tgt_imgs, axis):
     if isinstance(tgt_imgs, np.ndarray):
         out_imgs = list1toSQ2(tolist_only1axis(tgt_imgs, axis))
     else:
         out_imgs = list1toSQ2(tgt_imgs)
     return out_imgs
 
-def cmap_out_range_color(cmap_name='viridis',over_color='white',under_color='black',bad_color='red'):
+
+def cmap_out_range_color(cmap_name='viridis', over_color='white', under_color='black', bad_color='red'):
     cm = pylab.cm.get_cmap(cmap_name)
     colors = cm.colors
-    out_cmap = ListedColormap(colors,name='custom',N=255)
+    out_cmap = ListedColormap(colors, name='custom', N=255)
     out_cmap.set_over(over_color)
     out_cmap.set_under(under_color)
     out_cmap.set_bad(bad_color)
@@ -242,485 +265,346 @@ H:::::::H     H:::::::H        OO:::::::::OO              T:::::::::T           
 HHHHHHHHH     HHHHHHHHH          OOOOOOOOO                TTTTTTTTTTT           KKKKKKKKK    KKKKKKK     EEEEEEEEEEEEEEEEEEEEEE         YYYYYYYYYYYYY                                                                                                                                                             
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
 
-############################################################################ clim
-def q_hotkey__climAUTO(fig, event, hotkey_use):
+
+def q_hotkey__dummy(fig, event, state):
+    pass
+
+
+def q_hotkey__png_save(fig, event, state):
+    fig.savefig(datetime.datetime.now().strftime('q-%Y_%m_%d_%H_%M_%S') + '.png', bbox_inches='tight')
+    pass
+
+
+def q_hotkey__reset(fig, event, state):
+    for axe in state.axes_list:
+        axe.set_xlim(state.initial_lims[0][0], state.initial_lims[0][1])
+        axe.set_ylim(state.initial_lims[1][0], state.initial_lims[1][1])
+    pass
+
+
+def q_hotkey__roiset(fig, event, state):
+    if state.mouse_mode == 'ROI':
+        pos = (np.array(state.rect_list[state.current_axes_index].extents) + 0.5).astype(int)
+        if pos[3] - pos[2] == 0 and pos[1] - pos[0] == 0:
+            # [roi[event.key].set(xy=(-0.5, -0.5), width=0, height=0) for roi in state.roi_patch_list]
+            for roi in state.roi_patch_list:
+                roi[event.key].set(xy=(-0.5, -0.5), width=0, height=0)
+            # [roi_text[event.key].set(x=-0.5, y=-0.5, alpha=0) for roi_text in state.roi_text_list]
+            for roi_text in state.roi_text_list:
+                roi_text[event.key].set(x=-0.5, y=-0.5, alpha=0)
+        else:
+            pos = pos + np.array([-0.5, 0.5, -0.5, 0.5])
+            # [roi[event.key].set(xy=(pos[0], pos[2]), height=pos[3] - pos[2], width=pos[1] - pos[0]) for roi in state.roi_patch_list]
+            # [roi_text[event.key].set(x=pos[0], y=pos[2], alpha=1) for roi_text in state.roi_text_list]
+            for roi in state.roi_patch_list:
+                roi[event.key].set(xy=(pos[0], pos[2]), height=pos[3] - pos[2], width=pos[1] - pos[0])
+            for roi_text in state.roi_text_list:
+                roi_text[event.key].set(x=pos[0], y=pos[2], alpha=1)
+    pass
+
+
+def q_hotkey__mousemode_Normal(fig, event, state):
+    state.mouse_mode = 'Normal'
+
+
+def q_hotkey__mousemode_ROI(fig, event, state):
+    state.mouse_mode = 'ROI'
+
+
+def q_hotkey__roistats(fig, event, state):
+    active_roi_keys = [rk for rk in state.roi_patch_list[0].keys() if state.roi_patch_list[0][rk].get_height() > 0]
+
+    stats_list = np.zeros((len(state.axes_list), len(active_roi_keys))).tolist()
+    for axe_num in np.arange(len(state.axes_list)):
+        axes_img = state.axes_list[axe_num].images[0].get_array().data
+        for i, rk in enumerate(active_roi_keys):
+            tgt_roi = state.roi_patch_list[axe_num][rk]
+            roi_x, roi_y = np.array(tgt_roi.get_xy()) + 0.5
+            roi_xx, roi_yy = roi_x + tgt_roi.get_width(), roi_y + tgt_roi.get_height()
+            roi_y, roi_yy, roi_x, roi_xx = int(roi_y), int(roi_yy), int(roi_x), int(roi_xx)
+            hw = np.shape(axes_img)
+            roi_y, roi_yy, roi_x, roi_xx = np.clip(roi_y, 0, hw[0]), np.clip(roi_yy, 0, hw[0]), np.clip(roi_x, 0,
+                                                                                                        hw[1]), np.clip(
+                roi_xx, 0, hw[1])
+            roi_img = axes_img[roi_y:roi_yy, roi_x:roi_xx, ...]
+
+            stats_list[axe_num][i] = {'roi_x': roi_x, 'roi_xx': roi_xx,
+                                      'roi_y': roi_y, 'roi_yy': roi_yy,
+                                      'mean': np.nanmean(roi_img, axis=(0, 1)),
+                                      'std': np.nanstd(roi_img, axis=(0, 1)),
+                                      'min': np.nanmin(roi_img, axis=(0, 1)),
+                                      'max': np.nanmax(roi_img, axis=(0, 1)),
+                                      'med': np.nanmedian(roi_img, axis=(0, 1)), }
+
+    print_header = [''] + ['img' + str(axe_num) for axe_num in np.arange(len(state.axes_list))]
+    print_data = []
+    for i, rk in enumerate(active_roi_keys):
+        print('ROI <' + rk + '>',
+              'pos=[' + str(stats_list[0][i]['roi_y']) + ':' + str(stats_list[0][i]['roi_yy']) + ', ' + str(
+                  stats_list[0][i]['roi_x']) + ':' + str(stats_list[0][i]['roi_xx']) + ']')
+        print_data = [['mean'],
+                      ['std'],
+                      ['min'],
+                      ['max'],
+                      ['med'], ]
+        for axe_num in np.arange(len(state.axes_list)):
+            print_data[0].append(stats_list[axe_num][i]['mean'])
+            print_data[1].append(stats_list[axe_num][i]['std'])
+            print_data[2].append(stats_list[axe_num][i]['min'])
+            print_data[3].append(stats_list[axe_num][i]['max'])
+            print_data[4].append(stats_list[axe_num][i]['med'])
+
+        table_print(data=print_data, headers=print_header)
+
+    pass
+
+
+# clim
+#
+def q_hotkey_util__climMANUAL(fig, plusminus, gain):
     c_axe = fig.gca()
-    now_lim_x = np.clip((np.array(c_axe.get_xlim()) + 0.5).astype(int),0,None)
-    now_lim_y = np.clip((np.array(c_axe.get_ylim()) + 0.5).astype(int),0,None)
+    im = c_axe.images[0]  # 最初のimshow
+    caxis_min, caxis_max = im.get_clim()
+    diff = caxis_max - caxis_min
+    min_change = plusminus[0] * diff * gain
+    max_change = plusminus[1] * diff * gain
+    im.set_clim(caxis_min + min_change, caxis_max + max_change)
+    pass
+
+
+def q_hotkey__climMANUAL_top_down(fig, event, state):
+    q_hotkey_util__climMANUAL(fig, plusminus=[0, -1], gain=0.025)
+
+
+def q_hotkey__climMANUAL_btm_up(fig, event, state):
+    q_hotkey_util__climMANUAL(fig, plusminus=[1, 0], gain=0.025)
+
+
+def q_hotkey__climMANUAL_top_up(fig, event, state):
+    q_hotkey_util__climMANUAL(fig, plusminus=[0, 1], gain=0.025)
+
+
+def q_hotkey__climMANUAL_btm_down(fig, event, state):
+    q_hotkey_util__climMANUAL(fig, plusminus=[-1, 0], gain=0.025)
+
+
+def q_hotkey__climMANUAL_slide_up(fig, event, state):
+    q_hotkey_util__climMANUAL(fig, plusminus=[1, 1], gain=0.025)
+
+
+def q_hotkey__climMANUAL_slide_down(fig, event, state):
+    q_hotkey_util__climMANUAL(fig, plusminus=[-1, -1], gain=0.025)
+
+
+def q_hotkey__climAUTO(fig, event, state):
+    c_axe = fig.gca()
+    now_lim_x = np.clip((np.array(c_axe.get_xlim()) + 0.5).astype(int), 0, None)
+    now_lim_y = np.clip((np.array(c_axe.get_ylim()) + 0.5).astype(int), 0, None)
     temp = c_axe.images[0].get_array().data[now_lim_y[1]:now_lim_y[0], now_lim_x[0]:now_lim_x[1]]
-    c_axe.images[0].set_clim((np.nanmin(temp[(temp!=-np.inf)*(temp!=np.inf)]), np.nanmax(temp[(temp!=-np.inf)*(temp!=np.inf)])))
+    c_axe.images[0].set_clim(
+        (np.nanmin(temp[(temp != -np.inf) * (temp != np.inf)]), np.nanmax(temp[(temp != -np.inf) * (temp != np.inf)])))
     pass
 
-def q_hotkey__climWHOLE(fig, event, hotkey_use):
-    axes_list = [axe for axe in fig.get_axes() if isinstance(axe, matplotlib.axes._subplots.Subplot)]
-    now_lim_x = np.clip((np.array(axes_list[0].get_xlim()) + 0.5).astype(int),0,None)
-    now_lim_y = np.clip((np.array(axes_list[0].get_ylim()) + 0.5).astype(int),0,None)
-    whole_max = np.nanmax(np.array([np.nanmax(axe.images[0].get_array().data[now_lim_y[1]:now_lim_y[0], now_lim_x[0]:now_lim_x[1]]) for axe in axes_list]))
-    whole_min = np.nanmin(np.array([np.nanmin(axe.images[0].get_array().data[now_lim_y[1]:now_lim_y[0], now_lim_x[0]:now_lim_x[1]]) for axe in axes_list]))
-    for axe in axes_list:
-        axe.images[0].set_clim(whole_min,whole_max)
+
+def q_hotkey__climWHOLE(fig, event, state):
+    now_lim_x = np.clip((np.array(state.axes_list[0].get_xlim()) + 0.5).astype(int), 0, None)
+    now_lim_y = np.clip((np.array(state.axes_list[0].get_ylim()) + 0.5).astype(int), 0, None)
+    whole_max = np.nanmax(np.array(
+        [np.nanmax(axe.images[0].get_array().data[now_lim_y[1]:now_lim_y[0], now_lim_x[0]:now_lim_x[1]]) for axe in
+         state.axes_list]))
+    whole_min = np.nanmin(np.array(
+        [np.nanmin(axe.images[0].get_array().data[now_lim_y[1]:now_lim_y[0], now_lim_x[0]:now_lim_x[1]]) for axe in
+         state.axes_list]))
+    for axe in state.axes_list:
+        axe.images[0].set_clim(whole_min, whole_max)
     pass
 
-def q_hotkey__climEACH(fig, event, hotkey_use):
-    axes_list = [axe for axe in fig.get_axes() if isinstance(axe, matplotlib.axes._subplots.Subplot)]
-    now_lim_x = np.clip((np.array(axes_list[0].get_xlim()) + 0.5).astype(int),0,None)
-    now_lim_y = np.clip((np.array(axes_list[0].get_ylim()) + 0.5).astype(int),0,None)
-    for axe in axes_list:
+
+def q_hotkey__climEACH(fig, event, state):
+    now_lim_x = np.clip((np.array(state.axes_list[0].get_xlim()) + 0.5).astype(int), 0, None)
+    now_lim_y = np.clip((np.array(state.axes_list[0].get_ylim()) + 0.5).astype(int), 0, None)
+    for axe in state.axes_list:
         temp = axe.images[0].get_array().data[now_lim_y[1]:now_lim_y[0], now_lim_x[0]:now_lim_x[1]]
-        axe.images[0].set_clim((np.nanmin(temp[(temp!=-np.inf)*(temp!=np.inf)]), np.nanmax(temp[(temp!=-np.inf)*(temp!=np.inf)])))
+        axe.images[0].set_clim((np.nanmin(temp[(temp != -np.inf) * (temp != np.inf)]),
+                                np.nanmax(temp[(temp != -np.inf) * (temp != np.inf)])))
     pass
 
-def q_hotkey__climSYNC(fig, event, hotkey_use):
+
+def q_hotkey__climSYNC(fig, event, state):
     c_axe = fig.gca()
     sync_clim = c_axe.images[0].get_clim()
-    axes_list = [axe for axe in fig.get_axes() if isinstance(axe, matplotlib.axes._subplots.Subplot)]
-    for axe in axes_list:
-        axe.images[0].set_clim(sync_clim[0],sync_clim[1])
+    for axe in state.axes_list:
+        axe.images[0].set_clim(sync_clim[0], sync_clim[1])
     pass
 
-def q_hotkey_util__climSYNCudlr(fig, event, hotkey_use, direction):
+
+def q_hotkey_util__climSYNCudlr(fig, event, state, direction):
     c_axe = fig.gca()
     sync_clim = c_axe.images[0].get_clim()
     sps = c_axe.get_subplotspec()
     subplot_x, subplot_y = sps.colspan[0], sps.rowspan[0]
 
-    x_adj = {'up':0,'down':0,'left':-1,'right':1}
-    y_adj = {'up':-1,'down':1,'left':0,'right':0}
-    sync_tgt_x = subplot_x+x_adj[direction]
-    sync_tgt_y = subplot_y+y_adj[direction]
+    x_adj = {'up': 0, 'down': 0, 'left': -1, 'right': 1}
+    y_adj = {'up': -1, 'down': 1, 'left': 0, 'right': 0}
+    sync_tgt_x = subplot_x + x_adj[direction]
+    sync_tgt_y = subplot_y + y_adj[direction]
 
-    axes_list = [axe for axe in fig.get_axes() if isinstance(axe, matplotlib.axes._subplots.Subplot)]
-    for axe in axes_list:
+    for axe in state.axes_list:
         sps = axe.get_subplotspec()
-        if sps.colspan[0]==sync_tgt_x and sps.rowspan[0]==sync_tgt_y:
+        if sps.colspan[0] == sync_tgt_x and sps.rowspan[0] == sync_tgt_y:
             axe.images[0].set_clim(sync_clim[0], sync_clim[1])
     pass
 
-def q_hotkey__climSYNCup(fig, event, hotkey_use):
-    q_hotkey_util__climSYNCudlr(fig, event, hotkey_use, 'up')
-    pass
-def q_hotkey__climSYNCdown(fig, event, hotkey_use):
-    q_hotkey_util__climSYNCudlr(fig, event, hotkey_use, 'down')
-    pass
-def q_hotkey__climSYNCleft(fig, event, hotkey_use):
-    q_hotkey_util__climSYNCudlr(fig, event, hotkey_use, 'left')
-    pass
-def q_hotkey__climSYNCright(fig, event, hotkey_use):
-    q_hotkey_util__climSYNCudlr(fig, event, hotkey_use, 'right')
-    pass
 
-# ############################################################################ roi
-def q_hotkey__roistats(fig, event, hotkey_use):
-    active_roi_keys = [rk for rk in hotkey_use['roi_list'][0].keys() if hotkey_use['roi_list'][0][rk].get_height()>0]
-    axes_list = [axe for axe in fig.get_axes() if isinstance(axe,matplotlib.axes._subplots.Subplot)]
-
-    stats_list = np.zeros((len(axes_list),len(active_roi_keys))).tolist()
-    for axe_num in np.arange(len(axes_list)):
-        axes_img = axes_list[axe_num].images[0].get_array().data
-        for i,rk in enumerate(active_roi_keys):
-            tgt_roi = hotkey_use['roi_list'][axe_num][rk]
-            roi_x,roi_y = np.array(tgt_roi.get_xy())+0.5
-            roi_xx,roi_yy = roi_x+tgt_roi.get_width(), roi_y+tgt_roi.get_height()
-            roi_y,roi_yy,roi_x,roi_xx = int(roi_y),int(roi_yy),int(roi_x),int(roi_xx)
-            hw = np.shape(axes_img)
-            roi_y, roi_yy, roi_x, roi_xx = np.clip(roi_y,0,hw[0]), np.clip(roi_yy,0,hw[0]), np.clip(roi_x,0,hw[1]), np.clip(roi_xx,0,hw[1])
-            roi_img = axes_img[roi_y:roi_yy,roi_x:roi_xx,...]
-
-            stats_list[axe_num][i] = {'roi_x':roi_x,'roi_xx':roi_xx,
-                                      'roi_y':roi_y,'roi_yy':roi_yy,
-                                      'mean':np.nanmean(roi_img,axis=(0,1)),
-                                      'std' :np.nanstd(roi_img,axis=(0,1)),
-                                      'min' :np.nanmin(roi_img,axis=(0,1)),
-                                      'max' :np.nanmax(roi_img,axis=(0,1)),
-                                      'med' :np.nanmedian(roi_img,axis=(0,1)),}
-
-
-    print('======================== ROI stats ======================== ')
-    for i,rk in enumerate(active_roi_keys):
-        print('ROI key='+ rk
-              +'    pos=['+str(stats_list[0][i]['roi_y'])+':'+str(stats_list[0][i]['roi_yy'])+', '+str(stats_list[0][i]['roi_x'])+':'+str(stats_list[0][i]['roi_xx'])+']'
-              +'    pixel num=' + str(stats_list[0][i]['roi_yy']-stats_list[0][i]['roi_y'])+'*'+str(stats_list[0][i]['roi_xx']-stats_list[0][i]['roi_x']) + '=' +str( (stats_list[0][i]['roi_yy']-stats_list[0][i]['roi_y'])*(stats_list[0][i]['roi_xx']-stats_list[0][i]['roi_x']) )
-              )
-        print('img#'.ljust(5)      + '\t'
-              + 'mean'.ljust(20)   + '\t'
-              + 'std'.ljust(20)    + '\t'
-              + 'min'.ljust(20)    + '\t'
-              + 'max'.ljust(20)    + '\t'
-              + 'median'.ljust(20) + '\t'
-              )
-
-        for axe_num in np.arange(len(axes_list)):
-            if np.shape(stats_list[axe_num][i]['mean']): #チャンネルが存在する画像の場合
-                print_array = np.concatenate([stats_list[axe_num][i]['mean'][:,np.newaxis],
-                                              stats_list[axe_num][i]['std'][:,np.newaxis],
-                                              stats_list[axe_num][i]['min'][:,np.newaxis],
-                                              stats_list[axe_num][i]['max'][:,np.newaxis],
-                                              stats_list[axe_num][i]['med'][:,np.newaxis],
-                                              ],axis=1)
-
-                print( str(axe_num).ljust(5) + '\t'
-                       +'\n     \t'.join('\t'.join(str(x).ljust(20) for x in y) for y in print_array)
-                      )
-
-            else:
-                print( str(axe_num).ljust(5) + '\t'
-                      +str(stats_list[axe_num][i]['mean']).ljust(20)+'\t'
-                      +str(stats_list[axe_num][i]['std' ]).ljust(20)+'\t'
-                      +str(stats_list[axe_num][i]['min' ]).ljust(20)+'\t'
-                      +str(stats_list[axe_num][i]['max' ]).ljust(20)+'\t'
-                      +str(stats_list[axe_num][i]['med' ]).ljust(20)+'\t'
-                      )
-        print('')
+def q_hotkey__climSYNCup(fig, event, state):
+    q_hotkey_util__climSYNCudlr(fig, event, state, 'up')
     pass
 
 
-def q_hotkey__roistats2(fig, event, hotkey_use):
-    active_roi_keys = [rk for rk in hotkey_use['roi_list'][0].keys() if hotkey_use['roi_list'][0][rk].get_height()>0]
-    axes_list = [axe for axe in fig.get_axes() if isinstance(axe,matplotlib.axes._subplots.Subplot)]
-
-    stats_list = np.zeros((len(axes_list),len(active_roi_keys))).tolist()
-    for axe_num in np.arange(len(axes_list)):
-        axes_img = axes_list[axe_num].images[0].get_array().data
-        for i,rk in enumerate(active_roi_keys):
-            tgt_roi = hotkey_use['roi_list'][axe_num][rk]
-            roi_x,roi_y = np.array(tgt_roi.get_xy())+0.5
-            roi_xx,roi_yy = roi_x+tgt_roi.get_width(), roi_y+tgt_roi.get_height()
-            roi_y,roi_yy,roi_x,roi_xx = int(roi_y),int(roi_yy),int(roi_x),int(roi_xx)
-            hw = np.shape(axes_img)
-            roi_y, roi_yy, roi_x, roi_xx = np.clip(roi_y,0,hw[0]), np.clip(roi_yy,0,hw[0]), np.clip(roi_x,0,hw[1]), np.clip(roi_xx,0,hw[1])
-            roi_img = axes_img[roi_y:roi_yy,roi_x:roi_xx,...]
-
-            stats_list[axe_num][i] = {'roi_x':roi_x,'roi_xx':roi_xx,
-                                      'roi_y':roi_y,'roi_yy':roi_yy,
-                                      'mean':np.nanmean(roi_img,axis=(0,1)),
-                                      'std' :np.nanstd(roi_img,axis=(0,1)),
-                                      'min' :np.nanmin(roi_img,axis=(0,1)),
-                                      'max' :np.nanmax(roi_img,axis=(0,1)),
-                                      'med' :np.nanmedian(roi_img,axis=(0,1)),}
-
-
-    print('======================== ROI stats ======================== ')
-    headers = ['img No.','mean (imgN/img0)','std (imgN/img0)','min (imgN/img0)','max (imgN/img0)','median (imgN/img0)']
-    for i,rk in enumerate(active_roi_keys):
-        print('ROI key='+ rk
-              +'    pos=['+str(stats_list[0][i]['roi_y'])+':'+str(stats_list[0][i]['roi_yy'])+', '+str(stats_list[0][i]['roi_x'])+':'+str(stats_list[0][i]['roi_xx'])+']'
-              +'    pixel num=' + str(stats_list[0][i]['roi_yy']-stats_list[0][i]['roi_y'])+'*'+str(stats_list[0][i]['roi_xx']-stats_list[0][i]['roi_x']) + '=' +str( (stats_list[0][i]['roi_yy']-stats_list[0][i]['roi_y'])*(stats_list[0][i]['roi_xx']-stats_list[0][i]['roi_x']) )
-              )
-
-        print_list = []
-        # print_list2= []
-        for axe_num in np.arange(len(axes_list)):
-            if np.shape(stats_list[axe_num][i]['mean']): #チャンネルが存在する画像の場合
-                for ch in np.arange(np.shape(stats_list[axe_num][i]['mean'])):
-                    print_list.append([str(axe_num)+' ('+str(ch)+'ch)',
-                                       '{:<12.5f}'.format(stats_list[axe_num][i]['mean'][ch]) +' ('+'{:<.2f}'.format(stats_list[axe_num][i]['mean'][ch]/stats_list[0][i]['mean'][ch]*100)  + '%)',
-                                       '{:<12.5f}'.format(stats_list[axe_num][i]['std'][ch])  +' ('+'{:<.2f}'.format(stats_list[axe_num][i]['std'][ch] /stats_list[0][i]['std'][ch] *100)  + '%)',
-                                       '{:<12.5f}'.format(stats_list[axe_num][i]['min'][ch])  +' ('+'{:<.2f}'.format(stats_list[axe_num][i]['min'][ch] /stats_list[0][i]['min'][ch] *100)  + '%)',
-                                       '{:<12.5f}'.format(stats_list[axe_num][i]['max'][ch])  +' ('+'{:<.2f}'.format(stats_list[axe_num][i]['max'][ch] /stats_list[0][i]['max'][ch] *100)  + '%)',
-                                       '{:<12.5f}'.format(stats_list[axe_num][i]['med'][ch])  +' ('+'{:<.2f}'.format(stats_list[axe_num][i]['med'][ch] /stats_list[0][i]['med'][ch] *100)  + '%)',
-                                       ])
-
-            else:
-                print_list.append([str(axe_num),
-                                   '{:<12.5f}'.format(stats_list[axe_num][i]['mean']) + ' (' + '{:<.2f}'.format(stats_list[axe_num][i]['mean']/stats_list[0][i]['mean'] * 100) + '%)',
-                                   '{:<12.5f}'.format(stats_list[axe_num][i]['std'])  + ' (' + '{:<.2f}'.format(stats_list[axe_num][i]['std'] /stats_list[0][i]['std'] * 100)  + '%)',
-                                   '{:<12.5f}'.format(stats_list[axe_num][i]['min'])  + ' (' + '{:<.2f}'.format(stats_list[axe_num][i]['min'] /stats_list[0][i]['min'] * 100)  + '%)',
-                                   '{:<12.5f}'.format(stats_list[axe_num][i]['max'])  + ' (' + '{:<.2f}'.format(stats_list[axe_num][i]['max'] /stats_list[0][i]['max'] * 100)  + '%)',
-                                   '{:<12.5f}'.format(stats_list[axe_num][i]['med'])  + ' (' + '{:<.2f}'.format(stats_list[axe_num][i]['med'] /stats_list[0][i]['med'] * 100)  + '%)',
-                                   ])
-
-        table_print(print_list,headers)
-        print('')
-        # table_print(print_list2,headers)
-        # print('')
-
-    pass
-
-def q_hotkey__roipixval(fig, event, hotkey_use):
-    active_roi_keys = [rk for rk in hotkey_use['roi_list'][0].keys() if hotkey_use['roi_list'][0][rk].get_height() > 0]
-    axes_list = [axe for axe in fig.get_axes() if isinstance(axe, matplotlib.axes._subplots.Subplot)]
-
-    subplot_h,subplot_w = axes_list[0].get_gridspec().nrows, axes_list[0].get_gridspec().ncols
-
-    for i,rk in enumerate(active_roi_keys):
-        tgt_roi = hotkey_use['roi_list'][0][rk]
-        roi_x,roi_y = np.array(tgt_roi.get_xy())+0.5
-        roi_xx,roi_yy = roi_x+tgt_roi.get_width(), roi_y+tgt_roi.get_height()
-        roi_y,roi_yy,roi_x,roi_xx = int(roi_y),int(roi_yy),int(roi_x),int(roi_xx)
-
-        # 表示範囲制限
-        max_range = 25 # 表示最大範囲を25x25pixに制限
-        roi_yy,roi_xx = np.clip(roi_yy,None,roi_y+max_range), np.clip(roi_xx,None,roi_x+max_range)
-
-        ana_fig = plt.figure()
-        for j,axe in enumerate(axes_list):
-            axes_img = axe.images[0].get_array().data
-            hw = np.shape(axes_img)
-            roi_y, roi_yy, roi_x, roi_xx = np.clip(roi_y,0,hw[0]), np.clip(roi_yy,0,hw[0]), np.clip(roi_x,0,hw[1]), np.clip(roi_xx,0,hw[1])
-            part_img = axes_img[roi_y:roi_yy, roi_x:roi_xx]
-
-
-            sps = axe.get_subplotspec()
-            subplot_x = sps.colspan[0]
-            subplot_y = sps.rowspan[0]
-
-            img_sub_ax = ana_fig.add_subplot(subplot_h, subplot_w, subplot_y*subplot_w+subplot_x+1, picker = True)
-            img_sub_im = img_sub_ax.imshow(part_img, interpolation='nearest', cmap=axe.images[0].get_cmap(),
-                                           extent=[roi_x-0.5, roi_xx-0.5, roi_yy-0.5, roi_y-0.5 ],
-                                           aspect='equal')
-            img_sub_im.set_clim(axe.images[0].get_clim())
-
-            if np.ndim(axes_img) == 2:
-                v_a = {0: 'bottom', 1: 'top'}
-                for (iy, ix), val in np.ndenumerate(part_img):
-                    img_sub_ax.text(ix+roi_x, iy+roi_y, '{0:.3f}'.format(val), ha='center', va=v_a[ix%2], color='#F661F6', fontweight='bold', fontsize=9)
-            elif np.ndim(axes_img) == 3:
-                v_a = [-0.25,0,0.25]
-                tc = ['#FF7171','#9DDD15','#57B8FF',]
-                for c in np.arange(np.shape(part_img)[2]):
-                    for (iy, ix), val in np.ndenumerate(part_img[:,:,c]):
-                        img_sub_ax.text(ix+roi_x, iy+roi_y+v_a[c], '{0:.3f}'.format(val), ha='center', va='center', color=tc[c], fontweight='bold', fontsize=8)
-
-        ana_fig = q_addon(ana_fig)
-        ana_fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)  # 表示範囲調整
-        ana_fig.show()
-
+def q_hotkey__climSYNCdown(fig, event, state):
+    q_hotkey_util__climSYNCudlr(fig, event, state, 'down')
     pass
 
 
-# def q_hotkey__roiscatter(fig, event, hotkey_use):
-#
-
-def q_hotkey__noise_analyze(fig, event, hotkey_use):
-    active_roi_keys = [rk for rk in hotkey_use['roi_list'][0].keys() if hotkey_use['roi_list'][0][rk].get_height() > 0]
-    axes_list = [axe for axe in fig.get_axes() if isinstance(axe, matplotlib.axes._subplots.Subplot)]
-
-    for j, axe in enumerate(axes_list):
-        mean_list = []
-        var_list = []
-        for i, rk in enumerate(active_roi_keys):
-            tgt_roi = hotkey_use['roi_list'][0][rk]
-            roi_x,roi_y = np.array(tgt_roi.get_xy())+0.5
-            roi_xx,roi_yy = roi_x+tgt_roi.get_width(), roi_y+tgt_roi.get_height()
-            roi_y,roi_yy,roi_x,roi_xx = int(roi_y),int(roi_yy),int(roi_x),int(roi_xx)
-
-            axes_img = axe.images[0].get_array().data
-            hw = np.shape(axes_img)
-            roi_y, roi_yy, roi_x, roi_xx = np.clip(roi_y, 0, hw[0]), np.clip(roi_yy, 0, hw[0]), np.clip(roi_x, 0, hw[1]), np.clip(roi_xx, 0, hw[1])
-            part_img = axes_img[roi_y:roi_yy, roi_x:roi_xx]
-
-            mean_list.append(np.nanmean(part_img))
-            var_list.append(np.nanvar(part_img))
-
-        grad, intercept = weighted_least_squares(in_x=np.array(mean_list), in_y=np.array(var_list), weight=1/np.array(mean_list))
-        plotq([np.array(mean_list),np.array([0,np.max(mean_list)])], [np.array(var_list),np.array([intercept,np.max(mean_list)*grad+intercept])],
-              linewidth_list=[0,3],marker_list=['o',''])
-        print('grad='+str(grad), 'intercept='+str(intercept))
+def q_hotkey__climSYNCleft(fig, event, state):
+    q_hotkey_util__climSYNCudlr(fig, event, state, 'left')
     pass
 
-def q_hotkey__colorchecker(fig, event, hotkey_use):
-    axes_list = [axe for axe in fig.get_axes() if isinstance(axe, matplotlib.axes._subplots.Subplot)]
-    for j, axe in enumerate(axes_list):
-        tgt_roi = hotkey_use['roi_list'][j]['alt+0']
-        roi_x, roi_y = np.array(tgt_roi.get_xy()) + 0.5
-        roi_xx, roi_yy = roi_x + tgt_roi.get_width(), roi_y + tgt_roi.get_height()
-        roi_y, roi_yy, roi_x, roi_xx = int(roi_y), int(roi_yy), int(roi_x), int(roi_xx)
 
-        rk = ['1', '2', '3', '4', '5', '6',
-              '7', '8', '9', '0','ctrl+1', 'ctrl+2',
-              'ctrl+3', 'ctrl+4', 'ctrl+5', 'ctrl+6', 'ctrl+7', 'ctrl+8',
-              'ctrl+9', 'ctrl+0', 'alt+1', 'alt+2', 'alt+3', 'alt+4']
-        xn = (roi_xx-roi_x)/(40*6+6*5)
-        yn = (roi_yy-roi_y)/(40*4+6*3)
-        print(xn,yn)
-        for h in np.arange(4):
-            for w in np.arange(6):
-                # [roi[event.key].set(xy=(-0.5, -0.5), width=0, height=0) for roi in hotkey_use['roi_list']]
-                # [roi_text[event.key].set(x=-0.5, y=-0.5, alpha=0) for roi_text in hotkey_use['roi_text_list']]
-                hotkey_use['roi_list'][j][rk[h*6+w]].set(xy=(roi_x+xn*w*46+xn*0.2*40, roi_y+yn*h*46+yn*0.2*40), width=40*xn-xn*0.4*40, height=40*yn-yn*0.4*40)
-                hotkey_use['roi_text_list'][j][rk[h*6+w]].set(x=roi_x+xn*w*46+xn*0.2*40, y=roi_y+yn*h*46+yn*0.2*40, alpha=1)
-
-
-# ############################################################################ hist
-def q_hotkey_util__hist(fig, event, hotkey_use):
-    active_roi_keys = [rk for rk in hotkey_use['roi_list'][0].keys() if hotkey_use['roi_list'][0][rk].get_height() > 0]
-    axes_list = [axe for axe in fig.get_axes() if isinstance(axe, matplotlib.axes._subplots.Subplot)]
-
-    subplot_h,subplot_w = axes_list[0].get_gridspec().nrows, axes_list[0].get_gridspec().ncols
-    for i,rk in enumerate(active_roi_keys):
-        tgt_roi = hotkey_use['roi_list'][0][rk]
-        roi_x,roi_y = np.array(tgt_roi.get_xy())+0.5
-        roi_xx,roi_yy = roi_x+tgt_roi.get_width(), roi_y+tgt_roi.get_height()
-        roi_y,roi_yy,roi_x,roi_xx = int(roi_y),int(roi_yy),int(roi_x),int(roi_xx)
-
-        temp_input = [[] for i in range(subplot_h)]
-        temp_inter = [[] for i in range(subplot_h)]
-        temp_c     = [[] for i in range(subplot_h)]
-        temp_ec    = [[] for i in range(subplot_h)]
-        for j,axe in enumerate(axes_list):
-            axes_img = axe.images[0].get_array().data
-            hw = np.shape(axes_img)
-            roi_y, roi_yy, roi_x, roi_xx = np.clip(roi_y,0,hw[0]), np.clip(roi_yy,0,hw[0]), np.clip(roi_x,0,hw[1]), np.clip(roi_xx,0,hw[1])
-            part_img = axes_img[roi_y:roi_yy, roi_x:roi_xx]
-
-            sps = axe.get_subplotspec()
-            subplot_x = sps.colspan[0]
-            subplot_y = sps.rowspan[0]
-
-            if np.ndim(axes_img)==2:
-                temp_input[subplot_y].append(part_img)
-                temp_c[subplot_y].append(kutinawa_color[i])
-                temp_ec[subplot_y].append('black')
-
-                if np.all(axes_img.astype(int).astype(float)==axes_img):
-                    temp_inter[subplot_y].append(1)
-                else:
-                    temp_inter[subplot_y].append((axe.images[0].get_clim()[1] - axe.images[0].get_clim()[0]) / 256)
-
-            elif np.ndim(axes_img)==3:
-                tc = ['#FF7171', '#9DDD15', '#57B8FF', ]
-                for ch in np.arange(np.shape(axes_img)[2]):
-                    temp_input[subplot_y].append(part_img[:,:,ch])
-                    temp_inter[subplot_y].append((np.nanmax(axes_img)-np.nanmin(axes_img))/256)
-                    temp_c[subplot_y].append(kutinawa_color[i])
-                    temp_ec[subplot_y].append(tc[ch])
-
-        histq(input_list = temp_input,
-              interval_list=temp_inter,
-              label_list=None,
-              alpha_list = 1,
-              edgecolor_list = temp_ec,
-              color_list = temp_c,
-              histtype='bar',
-              overlay=False)
+def q_hotkey__climSYNCright(fig, event, state):
+    q_hotkey_util__climSYNCudlr(fig, event, state, 'right')
     pass
+
 
 # ############################################################################ lineprof
-def q_hotkey_util__lineprof(fig, event, hotkey_use, mode):
-    axes_list = [axe for axe in fig.get_axes() if isinstance(axe, matplotlib.axes._subplots.Subplot)]
-    img_xlim = axes_list[0].get_xlim()
-    img_xlim = [int(img_xlim[0]+ 0.5), int(img_xlim[1]+ 0.5)]
-    img_ylim = axes_list[0].get_ylim()
-    img_ylim = [int(img_ylim[0]+ 0.5), int(img_ylim[1]+ 0.5)]
+def q_hotkey_util__lineprof(fig, event, state, mode):
+    img_xlim = state.axes_list[0].get_xlim()
+    img_xlim = [int(img_xlim[0] + 0.5), int(img_xlim[1] + 0.5)]
+    img_ylim = state.axes_list[0].get_ylim()
+    img_ylim = [int(img_ylim[0] + 0.5), int(img_ylim[1] + 0.5)]
 
-    if mode=='H':
+    if mode == 'H':
         mouse_y = int(event.ydata + 0.5)
         line_img_xpos = img_xlim
-        line_img_ypos = [mouse_y+1, mouse_y]
+        line_img_ypos = [mouse_y + 1, mouse_y]
         line_plot_idx = 0
-        ax_line_xy1   = (img_xlim[0],mouse_y)
-        ax_line_xy2   = (img_xlim[1],mouse_y)
-        ax_line_xy3   = (img_xlim[0],mouse_y)
-        ax_line_xy4   = (img_xlim[1],mouse_y)
-    elif mode=='V':
+        ax_line_xy1 = (img_xlim[0], mouse_y)
+        ax_line_xy2 = (img_xlim[1], mouse_y)
+        ax_line_xy3 = (img_xlim[0], mouse_y)
+        ax_line_xy4 = (img_xlim[1], mouse_y)
+    else:  # elif mode=='V':
         mouse_x = int(event.xdata + 0.5)
-        line_img_xpos = [mouse_x, mouse_x+1]
+        line_img_xpos = [mouse_x, mouse_x + 1]
         line_img_ypos = img_ylim
         line_plot_idx = 1
-        ax_line_xy1   = (mouse_x, img_ylim[0])
-        ax_line_xy2   = (mouse_x, img_ylim[1])
-        ax_line_xy3   = (mouse_x, img_ylim[0])
-        ax_line_xy4   = (mouse_x, img_ylim[1])
+        ax_line_xy1 = (mouse_x, img_ylim[0])
+        ax_line_xy2 = (mouse_x, img_ylim[1])
+        ax_line_xy3 = (mouse_x, img_ylim[0])
+        ax_line_xy4 = (mouse_x, img_ylim[1])
 
     ana_fig = plt.figure()
-    plot_sub_ax = ana_fig.add_subplot(2,len(axes_list),(1,len(axes_list)),picker=True)
+    plot_sub_ax = ana_fig.add_subplot(2, len(state.axes_list), (1, len(state.axes_list)), picker=True)
 
-    for cn,axe in enumerate(axes_list):
+    for cn, axe in enumerate(state.axes_list):
         axes_img = axe.images[0].get_array().data
         hw = np.shape(axes_img)
         x_pos = [np.clip(line_img_xpos[0], 0, hw[1]), np.clip(line_img_xpos[1], 0, hw[1])]
         y_pos = [np.clip(line_img_ypos[1], 0, hw[0]), np.clip(line_img_ypos[0], 0, hw[0])]
-        line_img,pos = axes_img[y_pos[0]:y_pos[1], x_pos[0]:x_pos[1]], [x_pos, y_pos]
+        line_img, pos = axes_img[y_pos[0]:y_pos[1], x_pos[0]:x_pos[1]], [x_pos, y_pos]
 
         ####################### plot
-        m0 = int(np.mod(cn,4)>0)
-        m1 = int(np.mod(cn,4)>1)
-        m2 = int(np.mod(cn,4)>2)
-        linestyle = (0, (5,m0,m0,m0,m1,m1,m2,m2))
+        m0 = int(np.mod(cn, 4) > 0)
+        m1 = int(np.mod(cn, 4) > 1)
+        m2 = int(np.mod(cn, 4) > 2)
+        linestyle = (0, (5, m0, m0, m0, m1, m1, m2, m2))
 
-        if np.ndim(line_img)==2:
-            plot_sub_ax.plot(np.arange(pos[line_plot_idx][0],pos[line_plot_idx][1]),
+        if np.ndim(line_img) == 2:
+            plot_sub_ax.plot(np.arange(pos[line_plot_idx][0], pos[line_plot_idx][1]),
                              np.squeeze(line_img),
                              label=cn)
-        elif np.ndim(line_img)==3:
-            plot_sub_ax.plot(np.arange(pos[line_plot_idx][0],pos[line_plot_idx][1]),
-                             np.squeeze(line_img[:,:,0]),
-                             label=str(cn)+'(0ch)',
-                             color=(0.75, np.clip(cn/len(axes_list)-0.5,0,1), np.clip(-cn/len(axes_list)+0.5,0,1)),
-                             linestyle=linestyle )
-            plot_sub_ax.plot(np.arange(pos[line_plot_idx][0],pos[line_plot_idx][1]),
-                             np.squeeze(line_img[:,:,1]),
-                             label=str(cn)+'(1ch)',
-                             color=(np.clip(cn/len(axes_list)-0.5,0,1), 0.75, np.clip(-cn/len(axes_list)+0.5,0,1)),
-                             linestyle=linestyle )
-            plot_sub_ax.plot(np.arange(pos[line_plot_idx][0],pos[line_plot_idx][1]),
-                             np.squeeze(line_img[:,:,2]),
-                             label=str(cn)+'(2ch)',
-                             color=(np.clip(cn/len(axes_list)-0.5,0,1), np.clip(-cn/len(axes_list)+0.5,0,1), 0.75),
-                             linestyle=linestyle )
+        elif np.ndim(line_img) == 3:
+            plot_sub_ax.plot(np.arange(pos[line_plot_idx][0], pos[line_plot_idx][1]),
+                             np.squeeze(line_img[:, :, 0]),
+                             label=str(cn) + '(0ch)',
+                             color=(0.75, np.clip(cn / len(state.axes_list) - 0.5, 0, 1),
+                                    np.clip(-cn / len(state.axes_list) + 0.5, 0, 1)),
+                             linestyle=linestyle)
+            plot_sub_ax.plot(np.arange(pos[line_plot_idx][0], pos[line_plot_idx][1]),
+                             np.squeeze(line_img[:, :, 1]),
+                             label=str(cn) + '(1ch)',
+                             color=(np.clip(cn / len(state.axes_list) - 0.5, 0, 1), 0.75,
+                                    np.clip(-cn / len(state.axes_list) + 0.5, 0, 1)),
+                             linestyle=linestyle)
+            plot_sub_ax.plot(np.arange(pos[line_plot_idx][0], pos[line_plot_idx][1]),
+                             np.squeeze(line_img[:, :, 2]),
+                             label=str(cn) + '(2ch)',
+                             color=(np.clip(cn / len(state.axes_list) - 0.5, 0, 1),
+                                    np.clip(-cn / len(state.axes_list) + 0.5, 0, 1), 0.75),
+                             linestyle=linestyle)
 
         ####################### image
-        pos2 = [[np.clip(img_xlim[0], 0, hw[1]),np.clip(img_xlim[1], 0, hw[1])], [np.clip(img_ylim[1], 0, hw[0]), np.clip(img_ylim[0], 0, hw[0])]]
-        part_img   = axes_img[pos2[1][0]:pos2[1][1], pos2[0][0]:pos2[0][1]]
-        img_sub_ax = ana_fig.add_subplot(2,len(axes_list),len(axes_list)+cn+1,picker=True)
-        img_sub_ax.axline(xy1=ax_line_xy1,xy2=ax_line_xy2,color='pink')
-        img_sub_ax.axline(xy1=ax_line_xy3,xy2=ax_line_xy4,color='pink')
-        img_sub_im = img_sub_ax.imshow(part_img,interpolation='nearest', cmap=axe.images[0].get_cmap(),
-                                       extent=[pos2[0][0]-0.5,pos2[0][1]-0.5,pos2[1][1]-0.5,pos2[1][0]-0.5],
+        pos2 = [[np.clip(img_xlim[0], 0, hw[1]), np.clip(img_xlim[1], 0, hw[1])],
+                [np.clip(img_ylim[1], 0, hw[0]), np.clip(img_ylim[0], 0, hw[0])]]
+        part_img = axes_img[pos2[1][0]:pos2[1][1], pos2[0][0]:pos2[0][1]]
+        img_sub_ax = ana_fig.add_subplot(2, len(state.axes_list), len(state.axes_list) + cn + 1, picker=True)
+        img_sub_ax.axline(xy1=ax_line_xy1, xy2=ax_line_xy2, color='pink')
+        img_sub_ax.axline(xy1=ax_line_xy3, xy2=ax_line_xy4, color='pink')
+        img_sub_im = img_sub_ax.imshow(part_img, interpolation='nearest', cmap=axe.images[0].get_cmap(),interpolation_stage='data',
+                                       extent=[pos2[0][0] - 0.5, pos2[0][1] - 0.5, pos2[1][1] - 0.5, pos2[1][0] - 0.5],
                                        aspect='equal')
         img_sub_im.set_clim(axe.images[0].get_clim())
 
-    plot_sub_ax.legend(loc='upper right', bbox_to_anchor=(1, 1),prop={ "weight":"bold","size": "large"})
-    ana_fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)# 表示範囲調整
+    plot_sub_ax.legend(loc='upper right', bbox_to_anchor=(1, 1), prop={"weight": "bold", "size": "large"})
+    ana_fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)  # 表示範囲調整
     ana_fig.show()
     pass
 
 
-def q_hotkey__lineprofH(fig, event, hotkey_use):
+def q_hotkey__lineprofH(fig, event, state):
     if event.inaxes:
-        q_hotkey_util__lineprof(fig, event, hotkey_use, mode='H')
+        q_hotkey_util__lineprof(fig, event, state, mode='H')
 
-def q_hotkey__lineprofV(fig, event, hotkey_use):
+
+def q_hotkey__lineprofV(fig, event, state):
     if event.inaxes:
-        q_hotkey_util__lineprof(fig, event, hotkey_use, mode='V')
+        q_hotkey_util__lineprof(fig, event, state, mode='V')
 
 
-def q_hotkey_util__meanlineprof(fig, event, hotkey_use, mode):
-    axes_list = [axe for axe in fig.get_axes() if isinstance(axe, matplotlib.axes._subplots.Subplot)]
-    active_roi_keys = [rk for rk in hotkey_use['roi_list'][0].keys() if hotkey_use['roi_list'][0][rk].get_height()>0]
+def q_hotkey_util__meanlineprof(fig, event, state, mode):
+    active_roi_keys = [rk for rk in state.roi_patch_list[0].keys() if state.roi_patch_list[0][rk].get_height() > 0]
 
-    img_xlim = axes_list[0].get_xlim()
-    img_xlim = [int(img_xlim[0]+ 0.5), int(img_xlim[1]+ 0.5)]
-    img_ylim = axes_list[0].get_ylim()
-    img_ylim = [int(img_ylim[0]+ 0.5), int(img_ylim[1]+ 0.5)]
+    img_xlim = state.axes_list[0].get_xlim()
+    img_xlim = [int(img_xlim[0] + 0.5), int(img_xlim[1] + 0.5)]
+    img_ylim = state.axes_list[0].get_ylim()
+    img_ylim = [int(img_ylim[0] + 0.5), int(img_ylim[1] + 0.5)]
 
-    for i,rk in enumerate(active_roi_keys):
-        tgt_roi = hotkey_use['roi_list'][0][rk]
-        roi_x,roi_y = np.array(tgt_roi.get_xy())+0.5
-        roi_xx,roi_yy = roi_x+tgt_roi.get_width(), roi_y+tgt_roi.get_height()
-        roi_y,roi_yy,roi_x,roi_xx = int(roi_y),int(roi_yy),int(roi_x),int(roi_xx)
+    for i, rk in enumerate(active_roi_keys):
+        tgt_roi = state.roi_patch_list[0][rk]
+        roi_x, roi_y = np.array(tgt_roi.get_xy()) + 0.5
+        roi_xx, roi_yy = roi_x + tgt_roi.get_width(), roi_y + tgt_roi.get_height()
+        roi_y, roi_yy, roi_x, roi_xx = int(roi_y), int(roi_yy), int(roi_x), int(roi_xx)
 
         if mode == 'roiH':
             line_img_xpos = img_xlim
             line_img_ypos = [roi_yy, roi_y]
             line_plot_idx = 0
-            ax_line_xy1 = (img_xlim[0], roi_y-0.5)
-            ax_line_xy2 = (img_xlim[1], roi_y-0.5)
-            ax_line_xy3 = (img_xlim[0], roi_yy-0.5)
-            ax_line_xy4 = (img_xlim[1], roi_yy-0.5)
-        elif mode == 'roiV':
+            ax_line_xy1 = (img_xlim[0], roi_y - 0.5)
+            ax_line_xy2 = (img_xlim[1], roi_y - 0.5)
+            ax_line_xy3 = (img_xlim[0], roi_yy - 0.5)
+            ax_line_xy4 = (img_xlim[1], roi_yy - 0.5)
+        else:  # elif mode == 'roiV':
             line_img_xpos = [roi_x, roi_xx]
             line_img_ypos = img_ylim
             line_plot_idx = 1
-            ax_line_xy1 = (roi_x-0.5, img_ylim[0])
-            ax_line_xy2 = (roi_x-0.5, img_ylim[1])
-            ax_line_xy3 = (roi_xx-0.5, img_ylim[0])
-            ax_line_xy4 = (roi_xx-0.5, img_ylim[1])
+            ax_line_xy1 = (roi_x - 0.5, img_ylim[0])
+            ax_line_xy2 = (roi_x - 0.5, img_ylim[1])
+            ax_line_xy3 = (roi_xx - 0.5, img_ylim[0])
+            ax_line_xy4 = (roi_xx - 0.5, img_ylim[1])
 
         ana_fig = plt.figure()
-        plot_sub_ax = ana_fig.add_subplot(2,len(axes_list),(1,len(axes_list)),picker=True)
+        plot_sub_ax = ana_fig.add_subplot(2, len(state.axes_list), (1, len(state.axes_list)), picker=True)
 
-        for cn,axe in enumerate(axes_list):
+        for cn, axe in enumerate(state.axes_list):
             axes_img = axe.images[0].get_array().data
             hw = np.shape(axes_img)
             x_pos = [np.clip(line_img_xpos[0], 0, hw[1]), np.clip(line_img_xpos[1], 0, hw[1])]
@@ -735,33 +619,37 @@ def q_hotkey_util__meanlineprof(fig, event, hotkey_use, mode):
 
             if np.ndim(line_img) == 2:
                 plot_sub_ax.plot(np.arange(pos[line_plot_idx][0], pos[line_plot_idx][1]),
-                                 np.squeeze(np.mean(line_img,axis=line_plot_idx)),
+                                 np.squeeze(np.mean(line_img, axis=line_plot_idx)),
                                  label=cn)
             elif np.ndim(line_img) == 3:
                 plot_sub_ax.plot(np.arange(pos[line_plot_idx][0], pos[line_plot_idx][1]),
-                                 np.squeeze(np.mean(line_img[:, :, 0],axis=line_plot_idx)),
+                                 np.squeeze(np.mean(line_img[:, :, 0], axis=line_plot_idx)),
                                  label=str(cn) + '(0ch)',
-                                 color=(0.75, np.clip(cn / len(axes_list) - 0.5, 0, 1), np.clip(-cn / len(axes_list) + 0.5, 0, 1)),
+                                 color=(0.75, np.clip(cn / len(state.axes_list) - 0.5, 0, 1),
+                                        np.clip(-cn / len(state.axes_list) + 0.5, 0, 1)),
                                  linestyle=linestyle)
                 plot_sub_ax.plot(np.arange(pos[line_plot_idx][0], pos[line_plot_idx][1]),
-                                 np.squeeze(np.mean(line_img[:, :, 1],axis=line_plot_idx)),
+                                 np.squeeze(np.mean(line_img[:, :, 1], axis=line_plot_idx)),
                                  label=str(cn) + '(1ch)',
-                                 color=(np.clip(cn / len(axes_list) - 0.5, 0, 1), 0.75, np.clip(-cn / len(axes_list) + 0.5, 0, 1)),
+                                 color=(np.clip(cn / len(state.axes_list) - 0.5, 0, 1), 0.75,
+                                        np.clip(-cn / len(state.axes_list) + 0.5, 0, 1)),
                                  linestyle=linestyle)
                 plot_sub_ax.plot(np.arange(pos[line_plot_idx][0], pos[line_plot_idx][1]),
-                                 np.squeeze(np.mean(line_img[:, :, 2],axis=line_plot_idx)),
+                                 np.squeeze(np.mean(line_img[:, :, 2], axis=line_plot_idx)),
                                  label=str(cn) + '(2ch)',
-                                 color=(np.clip(cn / len(axes_list) - 0.5, 0, 1), np.clip(-cn / len(axes_list) + 0.5, 0, 1), 0.75),
+                                 color=(np.clip(cn / len(state.axes_list) - 0.5, 0, 1),
+                                        np.clip(-cn / len(state.axes_list) + 0.5, 0, 1), 0.75),
                                  linestyle=linestyle)
 
             ####################### image
-            pos2 = [[np.clip(img_xlim[0], 0, hw[1]), np.clip(img_xlim[1], 0, hw[1])], [np.clip(img_ylim[1], 0, hw[0]), np.clip(img_ylim[0], 0, hw[0])]]
+            pos2 = [[np.clip(img_xlim[0], 0, hw[1]), np.clip(img_xlim[1], 0, hw[1])],
+                    [np.clip(img_ylim[1], 0, hw[0]), np.clip(img_ylim[0], 0, hw[0])]]
             part_img = axes_img[pos2[1][0]:pos2[1][1], pos2[0][0]:pos2[0][1]]
-            img_sub_ax = ana_fig.add_subplot(2, len(axes_list), len(axes_list) + cn + 1, picker=True)
+            img_sub_ax = ana_fig.add_subplot(2, len(state.axes_list), len(state.axes_list) + cn + 1, picker=True)
             img_sub_ax.axline(xy1=ax_line_xy1, xy2=ax_line_xy2, color='pink')
             img_sub_ax.axline(xy1=ax_line_xy3, xy2=ax_line_xy4, color='pink')
-            img_sub_im = img_sub_ax.imshow(part_img, interpolation='nearest', cmap=axe.images[0].get_cmap(),
-                                           extent=[pos2[0][0] - 0.5, pos2[0][1] - 0.5, pos2[1][1] - 0.5, pos2[1][0] - 0.5],
+            img_sub_im = img_sub_ax.imshow(part_img, interpolation='nearest', cmap=axe.images[0].get_cmap(),interpolation_stage='data',
+                                           extent=[pos2[0][0] - 0.5, pos2[0][1] - 0.5, pos2[1][1] - 0.5,pos2[1][0] - 0.5],
                                            aspect='equal')
             img_sub_im.set_clim(axe.images[0].get_clim())
 
@@ -770,66 +658,106 @@ def q_hotkey_util__meanlineprof(fig, event, hotkey_use, mode):
         ana_fig.show()
 
 
-def q_hotkey__lineprofHmean(fig, event, hotkey_use):
-    q_hotkey_util__meanlineprof(fig, event, hotkey_use,mode='roiH')
-
-def q_hotkey__lineprofVmean(fig, event, hotkey_use):
-    q_hotkey_util__meanlineprof(fig, event, hotkey_use,mode='roiV')
-
-# def q_hotkey__posprint(event,config_list):
-#     if config_list[0].roi:# 画像
-#         view_pos = [config_list[0].get_xlim_pos_for_img(),config_list[0].get_ylim_pos_for_img()]
-#         mouse_pos = [int(event.xdata + 0.5),int(event.ydata + 0.5)]
-#         roi_pos = config_list[0].get_roi_pos()
-#         roi_pos = [roi_pos[0:2],roi_pos[2:]]
-#         print(  ('view[[xs,xe],[ys,ye]]:'+str(view_pos)).ljust(50)+'\t'
-#                 +('mouse[x,y]:'+str(mouse_pos)).ljust(40)+'\t'
-#                 +('roi[[xs,xe],[ys,ye]]:'+str(roi_pos)).ljust(50)+'\t')
-#     else:
-#         view_pos = [config_list[0].get_xlim_pos(),config_list[0].get_ylim_pos()]
-#         mouse_pos = [event.xdata ,event.ydata]
-#         print(  ('view[[xs,xe],[ys,ye]]:'+str(view_pos)).ljust(120)+'\t'
-#                 +('mouse[x,y]:'+str(mouse_pos)).ljust(80)+'\t')
-#     pass
+def q_hotkey__lineprofHmean(fig, event, state):
+    q_hotkey_util__meanlineprof(fig, event, state, mode='roiH')
 
 
-def q_hotkey__zoomplot(fig, event, hotkey_use):
-    axes_list = [axe for axe in fig.get_axes() if isinstance(axe,matplotlib.axes._subplots.Subplot)]
-    yud_mode = int(axes_list[0].get_ylim()[0] > axes_list[0].get_ylim()[1])
+def q_hotkey__lineprofVmean(fig, event, state):
+    q_hotkey_util__meanlineprof(fig, event, state, mode='roiV')
 
-    for axe in axes_list:
-        axes_img = axe.images[0].get_array().data
 
-        for rk in np.arange(10):
-            rk = str(rk)
-            crk = 'ctrl+' + rk
-            if hotkey_use['roi_list'][0][rk].get_height() > 0 and hotkey_use['roi_list'][0][crk].get_height() > 0:
-                target_area = [hotkey_use['roi_list'][0][rk].get_x(), hotkey_use['roi_list'][0][rk].get_x()+hotkey_use['roi_list'][0][rk].get_width(),
-                               hotkey_use['roi_list'][0][rk].get_y(), hotkey_use['roi_list'][0][rk].get_y()+hotkey_use['roi_list'][0][rk].get_height(),]
+def q_hotkey__ROIhist(fig, event, state):
+    active_roi_keys = [rk for rk in state.roi_patch_list[0].keys() if state.roi_patch_list[0][rk].get_height() > 0]
 
-                ylim = [axe.get_ylim()[np.abs(0-yud_mode)], axe.get_ylim()[np.abs(1-yud_mode)]]
-                xlim = axe.get_xlim()
-                y_range = ylim[1]-ylim[0]
-                x_range = xlim[1]-xlim[0]
-                if yud_mode==1:
-                    plot_area = [(hotkey_use['roi_list'][0][crk].get_x()-xlim[0])/x_range,1-(hotkey_use['roi_list'][0][crk].get_y()-ylim[0])/y_range-hotkey_use['roi_list'][0][crk].get_height()/y_range,
-                                 hotkey_use['roi_list'][0][crk].get_width()/x_range, hotkey_use['roi_list'][0][crk].get_height()/y_range,]
+    subplot_h, subplot_w = state.axes_list[0].get_gridspec().nrows, state.axes_list[0].get_gridspec().ncols
+    for i, rk in enumerate(active_roi_keys):
+        tgt_roi = state.roi_patch_list[0][rk]
+        roi_x, roi_y = np.array(tgt_roi.get_xy()) + 0.5
+        roi_xx, roi_yy = roi_x + tgt_roi.get_width(), roi_y + tgt_roi.get_height()
+        roi_y, roi_yy, roi_x, roi_xx = int(roi_y), int(roi_yy), int(roi_x), int(roi_xx)
+
+        temp_input = [[] for i in range(subplot_h)]
+        temp_inter = [[] for i in range(subplot_h)]
+        temp_c = [[] for i in range(subplot_h)]
+        temp_ec = [[] for i in range(subplot_h)]
+        for j, axe in enumerate(state.axes_list):
+            axes_img = axe.images[0].get_array().data
+            hw = np.shape(axes_img)
+            roi_y, roi_yy, roi_x, roi_xx = np.clip(roi_y, 0, hw[0]), np.clip(roi_yy, 0, hw[0]), np.clip(roi_x, 0,
+                                                                                                        hw[1]), np.clip(
+                roi_xx, 0, hw[1])
+            part_img = axes_img[roi_y:roi_yy, roi_x:roi_xx]
+
+            sps = axe.get_subplotspec()
+            subplot_x = sps.colspan[0]
+            subplot_y = sps.rowspan[0]
+
+            if np.ndim(axes_img) == 2:
+                temp_input[subplot_y].append(part_img)
+                temp_c[subplot_y].append(kutinawa_color[i])
+                temp_ec[subplot_y].append(kutinawa_color[i])
+                # temp_ec[subplot_y].append('black')
+
+                if np.all(axes_img.astype(int).astype(float) == axes_img):
+                    temp_inter[subplot_y].append(1)
                 else:
-                    plot_area = [(hotkey_use['roi_list'][0][crk].get_x()-xlim[0])/x_range,(hotkey_use['roi_list'][0][crk].get_y()-ylim[0])/y_range,
-                                 hotkey_use['roi_list'][0][crk].get_width()/x_range, hotkey_use['roi_list'][0][crk].get_height()/y_range,]
+                    temp_inter[subplot_y].append((axe.images[0].get_clim()[1] - axe.images[0].get_clim()[0]) / 256)
 
+            elif np.ndim(axes_img) == 3:
+                tc = ['#FF7171', '#9DDD15', '#57B8FF', ]
+                for ch in np.arange(np.shape(axes_img)[2]):
+                    temp_input[subplot_y].append(part_img[:, :, ch])
+                    temp_inter[subplot_y].append((np.nanmax(axes_img) - np.nanmin(axes_img)) / 256)
+                    temp_c[subplot_y].append(kutinawa_color[i])
+                    temp_ec[subplot_y].append(tc[ch])
 
-                axins = axe.inset_axes(plot_area)
-                axins.imshow(axes_img,origin='upper')
-                axins.set_xlim(target_area[0], target_area[1])
-                axins.set_ylim(target_area[2+np.abs(0-yud_mode)], target_area[2+np.abs(1-yud_mode)])
-                axins.set_ylim(target_area[2], target_area[3])
-
-                axins.set_xticklabels('')
-                axins.set_yticklabels('')
-                axe.indicate_inset_zoom(axins)
-
+        histq(tgt_data_list=temp_input,
+              interval_list=temp_inter,
+              label_list=None,
+              alpha_list=1,
+              edgecolor_list=temp_ec,
+              color_list=temp_c,
+              histtype='bar',
+              overlay=False)
     pass
+
+
+def q_hotkey__layer(fig, event, state):
+    temp_img = state.axes_list[min([int(event.key[1:]),len(state.axes_list)-1])].images[0].get_array()
+    state.axes_list[0].images[0].set_data(temp_img)
+    state.axes_list[0].images[0].set_extent((0, np.shape(temp_img)[1], np.shape(temp_img)[0], 0))
+    pass
+
+def q_hotkey__switch_cmap_linear_gamma(fig, event, state):
+    tag = "_gamma"
+    gamma = 1/2.1
+
+    c_axe = fig.gca()
+    im = c_axe.images[0]
+
+    cmap = im.get_cmap()
+    name = cmap.name
+
+    if name.endswith(tag):
+        print(name)
+        print(name[:-len(tag)])
+        orig_name = name[:-len(tag)]
+        orig_cmap = matplotlib.colormaps.get_cmap(orig_name)
+        im.set_cmap(orig_cmap)
+        c_axe.set_title('')
+        pass
+    else:
+        N = cmap.N
+        x = np.linspace(0, 1, N)
+        x_gamma = x ** gamma
+        colors = cmap(x_gamma)
+        gamma_cmap = ListedColormap(colors, name=name + tag)
+        print(gamma_cmap.name)
+        im.set_cmap(gamma_cmap)
+        print(im.get_cmap())
+        c_axe.set_title('2.1gamma')
+        pass
+
 
 
 """━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━                                                                                                                                                                       
@@ -855,261 +783,231 @@ q:::::::qqqqq:::::q                                   a::::a    a:::::a      d::
            q:::::::q     ________________________                                                                                                                      
            q:::::::q                                                                                                                                                   
            q:::::::q                                                                                                                                                   
-           qqqqqqqqq                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+            qqqqqqqqq                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
-def q_addon(fig,keyboard_dict=None,roi_coordinate='int'):
+
+
+class QAddonState:
+    """q_addon 全体で共有する状態"""
+
+    def __init__(self):
+        self.axes_list = []
+        self.mouse_mode = "Normal"
+        self.initial_lims = None
+        self.current_axes_index = 0
+        self.rect_list = []
+        self.roi_patch_list = []
+        self.roi_text_list = []
+        self.key_press_xy = [0, 0]
+        self.key_press_xydata = [0, 0]
+        self.btn_press_xy = [0, 0]
+        self.btn_press_xydata = [0, 0]
+        self.btn_press_clim = [0, 0]
+        self.shift_flag = False
+        self.inaxes_flag = False
+        self.cbar_list = []
+        self.incbar_flag = False
+
+
+def q_addon(fig, axes_list=None, keyboard_dict=None, imageq=False, cbar_list=None):
+    """
+    Matplotlib Figure に対してマウス・キーボード操作を拡張する
+    """
 
     plt.interactive(False)
-
-    # hotkey
-    def q_hotkey__dummy(fig, event, hotkey_use):
-        pass
-
-    def q_hotkey__png_save(fig, event, hotkey_use):
-        fig.savefig(datetime.datetime.now().strftime('q-%Y_%m_%d_%H_%M_%S') + '.png', bbox_inches='tight')
-        pass
-
-    def q_hotkey__reset(fig, event, hotkey_use):
-        axes_list = [axe for axe in fig.get_axes() if isinstance(axe, matplotlib.axes._subplots.Subplot)]
-        [axe.set_xlim(hotkey_use['init_xy_pos'][0][0], hotkey_use['init_xy_pos'][0][1]) for axe in axes_list]
-        [axe.set_ylim(hotkey_use['init_xy_pos'][1][0], hotkey_use['init_xy_pos'][1][1]) for axe in axes_list]
-        pass
-
-    def q_hotkey__roiset_int(fig, event, hotkey_use):
-        if hotkey_use['mouse_mode'] == 'ROI':
-            pos = (np.array(hotkey_use['ca_rect'].extents) + 0.5).astype(int)
-            if pos[3] - pos[2] == 0 and pos[1] - pos[0] == 0:
-                [roi[event.key].set(xy=(-0.5, -0.5), width=0, height=0) for roi in hotkey_use['roi_list']]
-                [roi_text[event.key].set(x=-0.5, y=-0.5, alpha=0) for roi_text in hotkey_use['roi_text_list']]
-            else:
-                pos = pos + np.array([-0.5, 0.5, -0.5, 0.5])
-                [roi[event.key].set(xy=(pos[0], pos[2]), height=pos[3] - pos[2], width=pos[1] - pos[0]) for roi in hotkey_use['roi_list']]
-                [roi_text[event.key].set(x=pos[0], y=pos[2], alpha=1) for roi_text in hotkey_use['roi_text_list']]
-        pass
-
-    def q_hotkey__roiset_float(fig, event, hotkey_use):
-        if hotkey_use['mouse_mode'] == 'ROI':
-            pos = np.array(hotkey_use['ca_rect'].extents)
-            if pos[3] - pos[2] == 0 and pos[1] - pos[0] == 0:
-                [roi[event.key].set(xy=(-0.5, -0.5), width=0, height=0) for roi in hotkey_use['roi_list']]
-                [roi_text[event.key].set(x=-0.5, y=-0.5, alpha=0) for roi_text in hotkey_use['roi_text_list']]
-            else:
-                [roi[event.key].set(xy=(pos[0], pos[2]), height=pos[3] - pos[2], width=pos[1] - pos[0]) for roi in hotkey_use['roi_list']]
-                [roi_text[event.key].set(x=pos[0], y=pos[2], alpha=1) for roi_text in hotkey_use['roi_text_list']]
-        pass
-
-    if keyboard_dict==None:
-        keyboard_dict=dict()
-
-    if roi_coordinate=='int':
-        keyboard_dict.update([('P',q_hotkey__png_save),
-                              ('tab',q_hotkey__reset),
-                              ('1',q_hotkey__roiset_int),('2', q_hotkey__roiset_int),('3', q_hotkey__roiset_int),('4', q_hotkey__roiset_int),('5', q_hotkey__roiset_int),('6', q_hotkey__roiset_int),('7', q_hotkey__roiset_int),('8', q_hotkey__roiset_int),('9', q_hotkey__roiset_int),('0', q_hotkey__roiset_int),
-                              ('ctrl+1', q_hotkey__roiset_int),('ctrl+2', q_hotkey__roiset_int),('ctrl+3', q_hotkey__roiset_int),('ctrl+4', q_hotkey__roiset_int),('ctrl+5', q_hotkey__roiset_int),('ctrl+6', q_hotkey__roiset_int),('ctrl+7', q_hotkey__roiset_int),('ctrl+8', q_hotkey__roiset_int),('ctrl+9', q_hotkey__roiset_int),('ctrl+0', q_hotkey__roiset_int),
-                              ('alt+1', q_hotkey__roiset_int),('alt+2', q_hotkey__roiset_int),('alt+3', q_hotkey__roiset_int),('alt+4', q_hotkey__roiset_int),('alt+5', q_hotkey__roiset_int),('alt+6', q_hotkey__roiset_int),('alt+7', q_hotkey__roiset_int),('alt+8', q_hotkey__roiset_int),('alt+9', q_hotkey__roiset_int),('alt+0', q_hotkey__roiset_int),
-                              ])
-    elif roi_coordinate=='float':
-        keyboard_dict.update([('P',q_hotkey__png_save),
-                              ('tab',q_hotkey__reset),
-                              ('1',q_hotkey__roiset_float),('2', q_hotkey__roiset_float),('3', q_hotkey__roiset_float),('4', q_hotkey__roiset_float),('5', q_hotkey__roiset_float),('6', q_hotkey__roiset_float),('7', q_hotkey__roiset_float),('8', q_hotkey__roiset_float),('9', q_hotkey__roiset_float),('0', q_hotkey__roiset_float),
-                              ('ctrl+1', q_hotkey__roiset_float),('ctrl+2', q_hotkey__roiset_float),('ctrl+3', q_hotkey__roiset_float),('ctrl+4', q_hotkey__roiset_float),('ctrl+5', q_hotkey__roiset_float),('ctrl+6', q_hotkey__roiset_float),('ctrl+7', q_hotkey__roiset_float),('ctrl+8', q_hotkey__roiset_float),('ctrl+9', q_hotkey__roiset_float),('ctrl+0', q_hotkey__roiset_float),
-                              ('alt+1', q_hotkey__roiset_float),('alt+2', q_hotkey__roiset_float),('alt+3', q_hotkey__roiset_float),('alt+4', q_hotkey__roiset_float),('alt+5', q_hotkey__roiset_float),('alt+6', q_hotkey__roiset_float),('alt+7', q_hotkey__roiset_float),('alt+8', q_hotkey__roiset_float),('alt+9', q_hotkey__roiset_float),('alt+0', q_hotkey__roiset_float),
-                              ])
-
-    def select_callback(eclick, erelease):
-        pass
-
-    event_dict = {'btn_prs_x': 0, 'btn_prs_y': 0,
-                  'btn_prs_xdata': 0, 'btn_prs_ydata': 0,
-                  'key_prs_xdata': 0, 'key_prs_ydata': 0,
-                  'btn_prs_inaxes_flag': False,
-                  'btn_prs_colorbar_flag': False,
-                  'sca_num': 0,'ca_change':True
-                  }
-    hotkey_use = {'init_xy_pos':[[]],
-                  'mouse_mode':'',
-                  'ca_rect':None,
-                  'roi_list':None,
-                  'roi_text_list': None
-                  }
-
-    #マウスモード初期化
-    mouse_mode_dict = {'n': 'Normal', 'r': 'ROI'}
-    mouse_mode_color_dict = {'Normal': 'white', 'ROI': 'red'}
-    hotkey_use['mouse_mode'] = mouse_mode_dict['n']
-
-    # axesリスト取得
-    axes_list = [axe for axe in fig.get_axes() if isinstance(axe, matplotlib.axes._subplots.Subplot)]
-    axes_dict = dict( zip(axes_list, np.arange(len(axes_list)).tolist() ) )
-    cbar_list = [axe for axe in fig.get_axes() if not isinstance(axe, matplotlib.axes._subplots.Subplot)]
-    cbar_dict = dict( zip(cbar_list, np.arange(len(cbar_list)).tolist() ) )
+    keyboard_dict = keyboard_dict or {}
+    state = QAddonState()
+    state.axes_list = axes_list or []
+    state.cbar_list = cbar_list or []
 
     # 軸範囲を取得、プロット領域の位置初期化
-    yud_mode = int(axes_list[0].get_ylim()[0] > axes_list[0].get_ylim()[1])
     xlims = np.array([axe.get_xlim() for axe in axes_list])
     ylims = np.array([axe.get_ylim() for axe in axes_list])
-    if yud_mode==0:
-        hotkey_use['init_xy_pos'] = [[np.min(xlims), np.max(xlims)],
-                                     [np.min(ylims), np.max(ylims)]]
-    elif yud_mode==1:
-        hotkey_use['init_xy_pos'] = [[np.min(xlims), np.max(xlims)],
-                                     [np.max(ylims), np.min(ylims)]]
-    [axe.set_xlim(hotkey_use['init_xy_pos'][0][0], hotkey_use['init_xy_pos'][0][1]) for axe in axes_list]
-    [axe.set_ylim(hotkey_use['init_xy_pos'][1][0], hotkey_use['init_xy_pos'][1][1]) for axe in axes_list]
+    y_inverted = int(ylims[0, 0] > ylims[0, 1])
+    if y_inverted == 1:
+        state.initial_lims = [[np.min(xlims), np.max(xlims)],
+                              [np.max(ylims), np.min(ylims)]]
+    else:
+        state.initial_lims = [[np.min(xlims), np.max(xlims)],
+                              [np.min(ylims), np.max(ylims)]]
+    for axe in state.axes_list:
+        axe.set_xlim(*state.initial_lims[0])
+        axe.set_ylim(*state.initial_lims[1])
 
-    # rect初期化
-    rect_list = [RectangleSelector(axe, select_callback,
-                                   useblit=True,
-                                   button=[1],  # disable right & middle button
-                                   minspanx=5, minspany=5,
-                                   spancoords='pixels',
-                                   interactive=True,
-                                   state_modifier_keys={"square":'ctrl'},
-                                   props=dict(
-                                       facecolor='pink',
-                                       edgecolor='white',
-                                       alpha=1,
-                                       fill=False)
-                                   ) for axe in axes_list]
-    hotkey_use['ca_rect'] = rect_list[0]
-
-    # ROI初期化
-    rk = ['1','2','3','4','5','6','7','8','9','0',
-          'ctrl+1','ctrl+2','ctrl+3','ctrl+4','ctrl+5','ctrl+6','ctrl+7','ctrl+8','ctrl+9','ctrl+0',
-          'alt+1','alt+2','alt+3','alt+4','alt+5','alt+6','alt+7','alt+8','alt+9','alt+0']
-    roi_list = [dict() for i in np.arange(len(axes_list))] # axes分のリストに、キーボード入力をkey・patches.Rectangleをvalにした辞書が入っている
-    roi_text_list = [dict() for i in np.arange(len(axes_list))]
-    for i_axe in np.arange(len(axes_list)):
-        for i_r in np.arange(30):
-            roi_list[i_axe][rk[i_r]] = patches.Rectangle(xy=(-0.5, -0.5), width=0, height=0, ec=kutinawa_color[i_r], fill=False)
-            axes_list[i_axe].add_patch(roi_list[i_axe][rk[i_r]])
-            roi_text_list[i_axe][rk[i_r]] = axes_list[i_axe].text(-0.5, -0.5, s=rk[i_r],c=kutinawa_color[i_r], ha='right', va='top', alpha=0, weight='bold')
-
-    hotkey_use['roi_list'] = roi_list
-    hotkey_use['roi_text_list'] = roi_text_list
-
-    def mouse_key_event(fig):
-        def button_press(event):
-            event_dict['btn_prs_shift_flag']  =(event.key=="shift")
-            event_dict['btn_prs_inaxes_flag'] = isinstance(event.inaxes, matplotlib.axes._subplots.Subplot)
-            event_dict['btn_prs_colorbar_flag'] = event.inaxes if event.inaxes and (not event_dict['btn_prs_inaxes_flag']) else False  #ここの判定なんとかしたい
-            event_dict['btn_prs_x'],    event_dict['btn_prs_y']     = event.x, event.y
-            event_dict['btn_prs_xdata'],event_dict['btn_prs_ydata'] = event.xdata, event.ydata
-
-            if event_dict['btn_prs_inaxes_flag']:
-                if (event.dblclick) and (event.button == 1):
-                    # ダブルクリックで最も大きい画像に合わせて表示領域リセット
-                    [axe.set_xlim(hotkey_use['init_xy_pos'][0][0], hotkey_use['init_xy_pos'][0][1]) for axe in axes_list]
-                    [axe.set_ylim(hotkey_use['init_xy_pos'][1][0], hotkey_use['init_xy_pos'][1][1]) for axe in axes_list]
-                    pass
-                else:
-                    # クリックした画像を着目画像(current axes)に指定
-                    [axe.spines['bottom'].set(color="black", linewidth=1) for axe in axes_list]
-                    fig.sca(event.inaxes)
-                    event.inaxes.spines['bottom'].set(color="#FF4500", linewidth=6)
-                    event_dict['ca_change'] = event_dict['sca_num']!=axes_dict.get(event.inaxes, 0)
-                    event_dict['sca_num'] = axes_dict.get(event.inaxes, 0)
-                    hotkey_use['ca_rect'] = rect_list[event_dict['sca_num']]
-
-                if hotkey_use['mouse_mode']=='Normal':
-                    if event.key=="shift":
-                        [rect.set_visible(True) for rect in rect_list]
-                    else:
-                        [rect.set_visible(False) for rect in rect_list]
-                elif hotkey_use['mouse_mode']=='ROI':
-                    [rect_list[i].set_visible(False) for i in set(np.arange(len(rect_list))).difference({event_dict['sca_num']})]
-                    rect_list[event_dict['sca_num']].set_visible(True)
-
-            pass
-
-        def key_press(event):
-            event_dict['key_prs_xdata']=event.xdata
-            event_dict['key_prs_ydata']=event.ydata
-
-            # nonlocal mouse_mode
-            conv_mouse_mode = hotkey_use['mouse_mode']
-            temp = mouse_mode_dict.get(event.key,None)
-            if temp:
-                if conv_mouse_mode==temp:
-                    hotkey_use['mouse_mode'] = 'Normal'
-                else:
-                    hotkey_use['mouse_mode'] = temp
-                [rs.artists[0].set_edgecolor(mouse_mode_color_dict[hotkey_use['mouse_mode']]) for rs in rect_list]
-            else:
-                hotkey_use['mouse_mode'] = conv_mouse_mode
-
-            # rectの座標とかを知りたいときは、rect_list[0].extents
-            keyboard_dict.get(event.key, q_hotkey__dummy)(fig, event, hotkey_use)
-            pass
-
-        def key_release(event):
-            fig.canvas.manager.set_window_title('Figure'+str(fig.number)+' [q_addon : Mouse mode = "'+hotkey_use['mouse_mode']+'"]')
-            if event.key in ['shift','alt','ctrl']:
-                pass
-            else:
-                fig.canvas.draw()
-            pass
-
-        def button_release(event):
-            if hotkey_use['mouse_mode']=='Normal':
-                if event_dict['btn_prs_inaxes_flag']:
-                    # rest非表示
-                    [rect.set_visible(False) for rect in rect_list]
-
-                    ax_x_px, ax_y_px = int((axes_list[0].bbox.x1 - axes_list[0].bbox.x0)), int((axes_list[0].bbox.y1 - axes_list[0].bbox.y0))
-                    move_x, move_y = event_dict['btn_prs_x'] - event.x, event_dict['btn_prs_y'] - event.y
-                    lim_x, lim_y = axes_list[0].get_xlim(), axes_list[0].get_ylim()
-                    ax_img_pix_x, ax_img_pix_y = lim_x[1] - lim_x[0], lim_y[1] - lim_y[0]
-                    move_x_pix, move_y_pix = move_x / ax_x_px * ax_img_pix_x, move_y / ax_y_px * ax_img_pix_y
-
-                    if event.key == "shift":
-                        x_lim = np.sort([event_dict['btn_prs_xdata'], event_dict['btn_prs_xdata'] - move_x_pix])
-                        y_lim = np.sort([event_dict['btn_prs_ydata'], event_dict['btn_prs_ydata'] - move_y_pix])
-                        [axe.set_xlim(x_lim[0], x_lim[1]) for axe in axes_list]
-                        [axe.set_ylim(y_lim[int(bool(0 - yud_mode))], y_lim[int(bool(1 - yud_mode))]) for axe in axes_list]
-                    else:
-                        [axe.set_xlim(lim_x[0] + move_x_pix, lim_x[1] + move_x_pix) for axe in axes_list]
-                        [axe.set_ylim(lim_y[0] + move_y_pix, lim_y[1] + move_y_pix) for axe in axes_list]
-
-
-                elif event_dict['btn_prs_colorbar_flag']:
-                    ax_y_px = int((event_dict['btn_prs_colorbar_flag'].bbox.y1 - event_dict['btn_prs_colorbar_flag'].bbox.y0))
-                    move_y = event_dict['btn_prs_y'] - event.y
-                    lim_y = event_dict['btn_prs_colorbar_flag'].get_ylim()
-                    ax_img_pix_y = lim_y[1] - lim_y[0]
-                    move_y_pix = move_y / ax_y_px * ax_img_pix_y
-
-                    if event_dict['btn_prs_ydata']<(lim_y[1]-lim_y[0])*0.2+lim_y[0]:
-                        axes_list[cbar_dict[event_dict['btn_prs_colorbar_flag']]].images[0].set_clim(lim_y[0] - move_y_pix, lim_y[1] )
-                    elif (lim_y[1]-lim_y[0])*0.8+lim_y[0]<event_dict['btn_prs_ydata']:
-                        axes_list[cbar_dict[event_dict['btn_prs_colorbar_flag']]].images[0].set_clim(lim_y[0], lim_y[1] - move_y_pix)
-                    else:
-                        axes_list[cbar_dict[event_dict['btn_prs_colorbar_flag']]].images[0].set_clim(lim_y[0] + move_y_pix, lim_y[1] + move_y_pix)
-
-                fig.canvas.draw()
-
-            elif hotkey_use['mouse_mode']=='ROI':
-                if event_dict['ca_change']:
-                    fig.canvas.draw()
-                pass
-            pass
-
-        fig.canvas.mpl_connect('button_press_event',button_press)
-        fig.canvas.mpl_connect('key_press_event',key_press)
-        fig.canvas.mpl_connect('key_release_event',key_release)
-        fig.canvas.mpl_connect('button_release_event',button_release)
-
+    # _initialize_rectangle_selectors(fig, axes_list, state)
+    # 拡縮、ROIの設定時に使用する、マウスボタン押下中にしか表示されない四角
+    # 1つのsubplotに1つずつ存在する
+    def dummy_callback(eclick, erelease):
         pass
 
-    mouse_key_event(fig)
-    fig.canvas.manager.set_window_title('Figure'+str(fig.number)+' [q_addon : Mouse mode = "'+hotkey_use['mouse_mode']+'"]')
+    for axe in state.axes_list:
+        selector = RectangleSelector(axe,
+                                     dummy_callback,
+                                     useblit=True,
+                                     button=[1],  # disable right & middle button
+                                     minspanx=5,
+                                     minspany=5,
+                                     spancoords='pixels',
+                                     interactive=True,
+                                     state_modifier_keys={"square": 'ctrl'},
+                                     props=dict(
+                                         facecolor='pink',
+                                         edgecolor='white',
+                                         alpha=1,
+                                         fill=False)
+                                     )
+        selector.set_visible(False)
+        state.rect_list.append(selector)
+
+    # _initialize_roi_objects(axes_list, state)
+    # ROIを使用する場合の初期化
+    # 各subplotに0~9,ctrl+0~9,alt+0~9分の30個のROIを見えない状態で描画
+    # 全てにROI設置用関数を紐付け
+    if imageq:
+        cbar_index = {ax: i for i, ax in enumerate(cbar_list)}
+        base_num_keys = [str(i + 1) for i in range(9)] + ['0']
+        roi_keys = base_num_keys + [f"ctrl+{k}" for k in base_num_keys] + [f"alt+{k}" for k in base_num_keys]
+
+        for axe in state.axes_list:
+            roi_dict = {}
+            roi_text_dict = {}
+
+            for i_r, roi_key in enumerate(roi_keys):
+                rect = patches.Rectangle(xy=(-0.5, -0.5), width=0, height=0, ec=kutinawa_color[i_r], fill=False)
+                text = axe.text(-0.5, -0.5, s=roi_key, c=kutinawa_color[i_r], ha='right', va='top', alpha=0,
+                                weight='bold')
+
+                axe.add_patch(rect)
+                roi_dict[roi_key] = rect
+                roi_text_dict[roi_key] = text
+
+            state.roi_patch_list.append(roi_dict)
+            state.roi_text_list.append(roi_text_dict)
+
+        # _register_keyboard_shortcuts
+        for key in roi_keys:
+            keyboard_dict[key] = q_hotkey__roiset
+
+        keyboard_dict['n'] = q_hotkey__mousemode_Normal
+        keyboard_dict['r'] = q_hotkey__mousemode_ROI
+    else:
+        cbar_index = None
+
+    # _register_events(fig, axes_list, keyboard_dict, state)
+    axes_index = {ax: i for i, ax in enumerate(axes_list)}
+
+    def on_key_press(event):
+        handler = keyboard_dict.get(event.key)
+        if handler:
+            handler(fig, event, state)
+
+    def on_key_release(event):
+        if not event.key in ['shift', 'alt', 'ctrl']:
+            fig.canvas.draw_idle()
+
+    def on_button_press(event):
+        if event.inaxes in axes_index:
+            state.btn_press_xy = [event.x, event.y]
+            state.btn_press_xydata = [event.xdata, event.ydata]
+            state.inaxes_flag = True
+
+            # クリックした画像を着目画像(current axes)に指定
+            state.current_axes_index = axes_index[event.inaxes]
+            fig.sca(event.inaxes)
+            for axe in state.axes_list:
+                axe.spines['bottom'].set(color="black", linewidth=1)
+            event.inaxes.spines['bottom'].set(color="#FF4500", linewidth=6)
+            # ダブルクリックで最も大きい画像に合わせて表示領域リセット
+            if (event.dblclick) and (event.button == 1):
+                for axe in state.axes_list:
+                    axe.set_xlim(state.initial_lims[0][0], state.initial_lims[0][1])
+                    axe.set_ylim(state.initial_lims[1][0], state.initial_lims[1][1])
+
+            if state.mouse_mode == 'Normal':
+                if event.key == "shift":
+                    for rect in state.rect_list:
+                        rect.set_visible(True)
+                else:
+                    for rect in state.rect_list:
+                        rect.set_visible(False)
+            elif state.mouse_mode == 'ROI':
+                for rect in state.rect_list:
+                    rect.set_visible(False)
+                state.rect_list[state.current_axes_index].set_visible(True)
+
+        elif (cbar_index) and (event.inaxes in cbar_index):
+            state.btn_press_xy = [event.x, event.y]
+            state.btn_press_xydata = [event.xdata, event.ydata]
+            state.incbar_flag = True
+
+            state.current_axes_index = cbar_index[event.inaxes]
+            fig.sca(state.axes_list[state.current_axes_index])
+            for axe in state.axes_list:
+                axe.spines['bottom'].set(color="black", linewidth=1)
+            state.axes_list[state.current_axes_index].spines['bottom'].set(color="#FF4500", linewidth=6)
+            state.btn_press_clim = state.axes_list[state.current_axes_index].images[0].get_clim()
+
+    def on_button_release(event):
+        if state.mouse_mode == 'Normal':
+            if state.inaxes_flag:
+                state.inaxes_flag = False
+                for rect in state.rect_list:
+                    rect.set_visible(False)
+
+                ax_x_px, ax_y_px = int((axes_list[0].bbox.x1 - axes_list[0].bbox.x0)), int((axes_list[0].bbox.y1 - axes_list[0].bbox.y0))
+                move_x, move_y = state.btn_press_xy[0] - event.x, state.btn_press_xy[1] - event.y
+                lim_x, lim_y = axes_list[0].get_xlim(), axes_list[0].get_ylim()
+                ax_img_pix_x, ax_img_pix_y = lim_x[1] - lim_x[0], lim_y[1] - lim_y[0]
+                move_x_pix, move_y_pix = move_x / ax_x_px * ax_img_pix_x, move_y / ax_y_px * ax_img_pix_y
+
+                if event.key == "shift":
+                    x_lim = np.sort([state.btn_press_xydata[0], state.btn_press_xydata[0] - move_x_pix])
+                    y_lim = np.sort([state.btn_press_xydata[1], state.btn_press_xydata[1] - move_y_pix])
+                    for axe in axes_list:
+                        axe.set_xlim(x_lim[0], x_lim[1])
+                        axe.set_ylim(y_lim[int(bool(0 - y_inverted))], y_lim[int(bool(1 - y_inverted))])
+                else:
+                    for axe in axes_list:
+                        axe.set_xlim(lim_x[0] + move_x_pix, lim_x[1] + move_x_pix)
+                        axe.set_ylim(lim_y[0] + move_y_pix, lim_y[1] + move_y_pix)
+
+                fig.canvas.draw_idle()
+
+            elif state.incbar_flag:
+                state.incbar_flag = False
+                ax_y_px = int((cbar_list[state.current_axes_index].bbox.y1 - cbar_list[state.current_axes_index].bbox.y0))
+                move_y = state.btn_press_xy[1] - event.y
+                lim_y = cbar_list[state.current_axes_index].get_ylim()
+                ax_img_pix_y = lim_y[1] - lim_y[0]
+                move_y_pix = move_y / ax_y_px * ax_img_pix_y
+
+                if event.key == "shift":
+                    print(lim_y[0], lim_y[1], move_y_pix)
+                    if (ax_img_pix_y/2+lim_y[0])<state.btn_press_xydata[1]:
+                        axes_list[state.current_axes_index].images[0].set_clim(lim_y[0] , lim_y[1]-move_y_pix)
+                    else:
+                        axes_list[state.current_axes_index].images[0].set_clim(lim_y[0]-move_y_pix, lim_y[1])
+
+                else:
+                    axes_list[state.current_axes_index].images[0].set_clim(lim_y[0]+move_y_pix,lim_y[1]+move_y_pix)
+                fig.canvas.draw_idle()
+
+
+        elif state.mouse_mode == 'ROI':
+            if state.inaxes_flag:
+                state.inaxes_flag = False
+
+    fig.canvas.mpl_connect("key_press_event", on_key_press)
+    fig.canvas.mpl_connect("button_press_event", on_button_press)
+    fig.canvas.mpl_connect("key_release_event", on_key_release)
+    fig.canvas.mpl_connect("button_release_event", on_button_release)
+
     return fig
 
 
-
 """━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                                                                                                                                                                                                                
-                                                                                                                                                                                                                
+
+
 DDDDDDDDDDDDD                                   tttt                                    SSSSSSSSSSSSSSS hhhhhhh                                                     iiii                                        
 D::::::::::::DDD                             ttt:::t                                  SS:::::::::::::::Sh:::::h                                                    i::::i                                       
 D:::::::::::::::DD                           t:::::t                                 S:::::SSSSSS::::::Sh:::::h                                                     iiii                                        
@@ -1134,93 +1032,135 @@ DDDDDDDDDDDDD          aaaaaaaaaa  aaaa          ttttttttttt    aaaaaaaaaa  aaaa
                                                                                                                                               ppppppppp                                         ggg::::::ggg    
                                                                                                                                                                                                    gggggg                                                                                                                                                         
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
-def q_util_shaping_2dlist(input_data):
+
+
+def qutil_data_shaping_2dlist_main(input_data):
+    """
+    入力データを2次元リストにし、
+    同じ構造を持つ0埋めのリストを返す。
+    """
+    # ケース1: 入力がリストでない場合
     if not isinstance(input_data, list):
-        output_list_for_shape = [[0]]
-        input_data = [[input_data]]
-    else:
-        lb = np.sum(np.array([isinstance(id, list) for id in input_data]))
-        if lb==0:
-            output_list_for_shape = [[0]*len(input_data)]
-            input_data = [input_data]
-        else:
-            output_list_for_shape = [[0]*len(id) if isinstance(id, list) else [0] for id in input_data]
-            input_data = [id if isinstance(id, list) else [id] for id in input_data]
-    return input_data,output_list_for_shape
+        output_2dlisted_data = [[input_data]]
+        output_shape_template = [[0]]
+        return output_2dlisted_data, output_shape_template
+    # ケース2: 入力が1次元リストの場合（要素がすべて非リスト）
+    contains_list = any(isinstance(element, list) for element in input_data)  # input_data の中に「list 型の要素が1つでも含まれているか」を判定
+    if not contains_list:
+        output_2dlisted_data = [input_data]
+        output_shape_template = [[0 for _ in input_data]]
+        return output_2dlisted_data, output_shape_template
+    # ケース3: 入力が2次元相当（リストと非リストが混在）
+    output_2dlisted_data = []
+    output_shape_template = []
+    for element in input_data:
+        if isinstance(element, list):  # 要素が list の場合
+            output_2dlisted_data.append(element)
+            output_shape_template.append([0 for _ in element])
+        else:  # 要素が list ではない場合
+            output_2dlisted_data.append([element])
+            output_shape_template.append([0])
+    return output_2dlisted_data, output_shape_template
 
-def q_util_shaping_2dlist_sub(input_data, main_list_for_shape):
-    output_data = []
+
+def qutil_data_shaping_2dlist_sub(input_data, shape_template):
+    """
+    shape_template の構造に合わせて input_data を整形する関数。
+    - 非リスト(スカラ、タプル、辞書、etc...)   : shape 全体にブロードキャスト
+    - 1次元リスト                              : 行をまたいで shape に順番詰め
+    - 2次元リスト                              : 行対応を維持して shape に切り詰め
+    """
+
+    ### ケース1: input_data が非リストの場合
     if not isinstance(input_data, list):
-        for y in np.arange(len(main_list_for_shape)):
-            output_data.append([input_data for x in range(len(main_list_for_shape[y]))])
+        output_data = []
+        for row_shape in shape_template:
+            output_data.append([input_data for _ in row_shape])
+        return output_data
+
+    ### ケース2: input_data がリストの場合
+    # list の次元判定
+    is_2d_input = any(isinstance(element, list) for element in input_data)
+    is_2d_shape = any(isinstance(element, list) for element in shape_template)
+    # ケース2-1: input_data が1次元リスト
+    if not is_2d_input:
+        # 要素数チェック
+        input_count = len(input_data)
+        shape_count = sum(len(row) for row in shape_template)
+        # 要素数＋形状チェック
+        if is_2d_shape:  # shape_templateが2次元
+            print("warning:shape mismatch! ::: input_data -> 1d | shape_template -> 2d")
+            if input_count == shape_count:
+                print(
+                    "warning:shape mismatch! ::: input_data's element number == shape_template's element number : Adjust the data shape and run")
+        if input_count > shape_count:
+            print(
+                "warning:shape mismatch! ::: input_data's element number > shape_template's element number : Adjust the data shape and run, but input_data will be truncated.")
+        elif input_count < shape_count:
+            raise ValueError(
+                " shape mismatch! ::: input_data's element number < shape_template's element number : Cannot adjust data shape, stopping.")
+
+        # 出力データ成形
+        reshaped_data = []
+        index = 0
+        # shape に従って順番に詰める
+        for row_shape in shape_template:
+            row_length = len(row_shape)
+            reshaped_row = input_data[index:index + row_length]
+            reshaped_data.append(reshaped_row)
+            index += row_length
+
+        return reshaped_data
+
+    # ケース2-2: input_data が2次元リスト
     else:
-        temp2 = 0
-        for y in np.arange(len(input_data)):
-            if not isinstance(input_data[y],list):
-                temp2 = temp2+1
+        if len(shape_template) != len(input_data):
+            raise ValueError(
+                " shape mismatch! ::: input_data and shape_template are 2d-list, but the number of rows is different.")
 
-        if len(input_data)==temp2:#input_dataが1次元listだった
-            output_data = [input_data]
-        elif temp2==0:#input_dataが2次元配列だった
-            output_data = input_data
+        reshaped_data = []
+        for row_index, row_shape in enumerate(shape_template):
+            if len(shape_template[row_index]) < len(shape_template[row_index]):
+                raise ValueError(
+                    " shape mismatch! input_data and shape_template are 2d-list, but the number of elements in one of input_data's rows is less than that in shape_template.")
+            elif len(shape_template[row_index]) > len(shape_template[row_index]):
+                print(
+                    "warning:shape mismatch! ::: input_data's element number > shape_template's element number : Adjust the data shape and run, but input_data will be truncated.")
+            required_length = len(row_shape)
+            reshaped_row = input_data[row_index][:required_length]
+            reshaped_data.append(reshaped_row)
+        return reshaped_data
 
-        for y in np.arange(len(main_list_for_shape)):
-            if len(main_list_for_shape[y]) != len(output_data[y]):
-                print('warning:list shape error!')
 
-    return output_data
-
-
-def q_util_shaping_2dlist_color(input_color, main_list_for_shape):
+def qutil_color_shaping_2dlist_sub(input_color, shape_template):
     output_color = []
     if input_color in matplotlib_colormap_list:
         cm = plt.cm.get_cmap(input_color)
-        main_data_num = sum(len(v) for v in main_list_for_shape)
+        main_data_num = sum(len(v) for v in shape_template)
         i = 0
-        for y in np.arange(len(main_list_for_shape)):
-            temp=[]
-            for x in range(len(main_list_for_shape[y])):
-                temp.append(cm(i/np.clip(main_data_num-1,1,None)))
-                i = i+1
+        for y in np.arange(len(shape_template)):
+            temp = []
+            for x in range(len(shape_template[y])):
+                temp.append(cm(i / np.clip(main_data_num - 1, 1, None)))
+                i = i + 1
             output_color.append(temp)
-    elif input_color=='kutinawa_color':
+    elif input_color == 'kutinawa_color':
         i = 0
-        for y in np.arange(len(main_list_for_shape)):
-            temp=[]
-            for x in range(len(main_list_for_shape[y])):
-                temp.append(kutinawa_color[i%len(kutinawa_color)])
-                i = i+1
+        for y in np.arange(len(shape_template)):
+            temp = []
+            for x in range(len(shape_template[y])):
+                temp.append(kutinawa_color[i % len(kutinawa_color)])
+                i = i + 1
             output_color.append(temp)
     else:
-        if isinstance(input_color,list):
-            output_color = input_color
-        else:
-            for y in np.arange(len(main_list_for_shape)):
-                output_color.append([input_color for x in range(len(main_list_for_shape[y]))])
+        output_color = qutil_data_shaping_2dlist_sub(input_color, shape_template)
+        # if isinstance(input_color,list):
+        #     output_color = input_color
+        # else:
+        #     for y in np.arange(len(shape_template)):
+        #         output_color.append([input_color for x in range(len(shape_template[y]))])
 
     return output_color
-
-def q_util_shaping_2dlist_label_arange(main_list_for_shape):
-    output_data = []
-    i = 0
-    for y in np.arange(len(main_list_for_shape)):
-        temp = []
-        for x in range(len(main_list_for_shape[y])):
-            temp.append(str(i))
-            i = i+1
-        output_data.append(temp)
-    return output_data
-
-def q_util_shaping_2dlist_arange(input_data,main_list_for_shape):
-    output_data = []
-    i = 0
-    for y in np.arange(len(main_list_for_shape)):
-        temp = []
-        for x in range(len(main_list_for_shape[y])):
-            temp.append(np.arange(np.shape(np.squeeze(np.reshape(input_data[y][x],(1,-1))))[0]))
-        output_data.append(temp)
-    return output_data
-
 
 
 """━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1248,39 +1188,88 @@ IIIIIIIIII     mmmmmm   mmmmmm   mmmmmm       aaaaaaaaaa  aaaa         gggggggg:
                                                                        ggg::::::ggg                             
                                                                           gggggg                                                                                                                                                                               
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
-def imageq(target_img_list, caxis_list=(0, 0), cmap_list='viridis', disp_cbar=True, fig=None):
+
+
+def imageq(tgt_img_list, caxis_list=(0, 0), cmap_list='viridis', disp_cbar=True, fig=None, mode='comp'):
     plt.interactive(False)
+    # fig受け取っていなければ新規作成
     if not fig:
         fig = plt.figure()
 
-    ############################## 必ず2次元listの形状にする
-    target_img_list, target_img_list_for_shape = q_util_shaping_2dlist(target_img_list)
-    caxis_list = q_util_shaping_2dlist_sub(caxis_list, target_img_list_for_shape)
-    cmap_list = q_util_shaping_2dlist_sub(cmap_list, target_img_list_for_shape)
+    # tgt_shape_templateをお手本配列形状としてパラメータ類の形状成形、必ず2次元listの形状にする
+    tgt_img_list, tgt_shape_template = qutil_data_shaping_2dlist_main(tgt_img_list)
+    caxis_list = qutil_data_shaping_2dlist_sub(caxis_list, tgt_shape_template)
+    cmap_list = qutil_data_shaping_2dlist_sub(cmap_list, tgt_shape_template)
+    keyboard_dict = {'tab': q_hotkey__reset, 'n': q_hotkey__mousemode_Normal, 'r': q_hotkey__mousemode_ROI,
+                     'p': q_hotkey__png_save,
+                     'A': q_hotkey__climAUTO, 'W': q_hotkey__climWHOLE, 'E': q_hotkey__climEACH,
+                     'S': q_hotkey__climSYNC,
+                     '>': q_hotkey__climMANUAL_top_down, 'alt+>': q_hotkey__climMANUAL_top_up,
+                     'up': q_hotkey__climSYNCup, 'down': q_hotkey__climSYNCdown,
+                     'left': q_hotkey__climSYNCleft, 'right': q_hotkey__climSYNCright,
+                     'i': q_hotkey__lineprofV, '-': q_hotkey__lineprofH, 'I': q_hotkey__lineprofVmean,
+                     '=': q_hotkey__lineprofHmean,
+                     '#': q_hotkey__roistats, 'H': q_hotkey__ROIhist,
+                     'm':q_hotkey__switch_cmap_linear_gamma,
+                     }
+    if mode == 'layer':
+        tgt_img_list_layer       = [[tgt_img_list[0][0]      ]]
+        tgt_shape_template_layer = [[tgt_shape_template[0][0]]]
+        caxis_list_layer         = [[caxis_list[0][0]        ]]
+        cmap_list_layer          = [[cmap_list[0][0]         ]]
+        for y_id in range(len(tgt_shape_template)):
+            for x_id in range(len(tgt_shape_template[y_id])):
+                tgt_img_list_layer[0].append(tgt_img_list[y_id][x_id])
+                tgt_shape_template_layer[0].append(tgt_shape_template[y_id][x_id])
+                caxis_list_layer[0].append(caxis_list[y_id][x_id])
+                cmap_list_layer[0].append(cmap_list[y_id][x_id])
+        tgt_img_list        = tgt_img_list_layer
+        tgt_shape_template  = tgt_shape_template_layer
+        caxis_list          = caxis_list_layer
+        cmap_list           = cmap_list_layer
 
-    ############################### 各imshow描画
-    y_id_max = len(target_img_list)
-    x_id_max = np.max(np.array([len(i) for i in target_img_list]))
-    for y_id, temp_list in enumerate(target_img_list):
-        for x_id, target_img in enumerate(temp_list):
-            if caxis_list[y_id][x_id][1] - caxis_list[y_id][x_id][0] <= 0:
-                caxis_list[y_id][x_id] = (np.nanmin(target_img[(target_img!=-np.inf)*(target_img!=np.inf)]), np.nanmax(target_img[(target_img!=-np.inf)*(target_img!=np.inf)]))
+        keyboard_dict.update([('f'+str(i),q_hotkey__layer) for i in np.arange(1,13)])
 
-            ax = fig.add_subplot(y_id_max, x_id_max, x_id_max * y_id + x_id + 1, picker=True)
-            if np.ndim(target_img) == 2:
-                ims = ax.imshow(target_img.astype(float), interpolation='nearest', cmap=cmap_list[y_id][x_id])
+
+    # 各imshow描画
+    y_id_max = len(tgt_shape_template)
+    x_id_max = np.max(np.array([len(i) for i in tgt_shape_template]))
+    for y_id in range(len(tgt_shape_template)):
+        for x_id in range(len(tgt_shape_template[y_id])):
+
+            if mode=='layer':
+                if y_id+x_id==0:
+                    ax = fig.add_subplot(13, 12, (1,144), picker=True)
+                else:
+                    ax = fig.add_subplot(13, 12, 144+x_id, picker=True)
+            else:
+                ax = fig.add_subplot(y_id_max, x_id_max, x_id_max * y_id + x_id + 1, picker=True)
+
+            # 描画画像指定
+            tgt_img = tgt_img_list[y_id][x_id]
+            # caxis指定がmin>=maxの場合、画素値の最小最大から自動でcaxis指定
+            if caxis_list[y_id][x_id][0] >= caxis_list[y_id][x_id][1]:
+                # inf、nanを除いたmin-max
+                caxis_list[y_id][x_id] = (np.nanmin(tgt_img[(tgt_img != -np.inf) * (tgt_img != np.inf)]),
+                                          np.nanmax(tgt_img[(tgt_img != -np.inf) * (tgt_img != np.inf)]))
+
+            # 各subplot描画
+            ims = []
+            if np.ndim(tgt_img) == 2:  # 1ch画像の場合
+                ims = ax.imshow(tgt_img.astype(float), interpolation='nearest', cmap=cmap_list[y_id][x_id],interpolation_stage='data',)
                 ims.set_clim(caxis_list[y_id][x_id][0], caxis_list[y_id][x_id][1])
 
-            elif np.ndim(target_img) in [3, 4]:
-                # 3,4ch画像をcmin~cmaxのレンジで正規化するため、値域調整
-                print("imq-Warning: The image was normalized to 0-1 and clipped in the cmin-cmax range for a 3-channel image.")
-                ims = ax.imshow(np.clip((target_img.astype(float) - caxis_list[y_id][x_id][0]) / (caxis_list[y_id][x_id][1] - caxis_list[y_id][x_id][0]), 0, 1),
-                                interpolation='nearest', cmap=cmap_list[y_id][x_id])
+            elif np.ndim(tgt_img) == 3:  # 2ch以上画像の場合
+                # 画像をcmin~cmaxのレンジで正規化するため、値域調整
+                print(
+                    "imq-Warning: The image was normalized to 0-1 and clipped in the cmin-cmax range for a 3-channel image.")
+                ims = ax.imshow(np.clip((tgt_img.astype(float) - caxis_list[y_id][x_id][0]) / (
+                            caxis_list[y_id][x_id][1] - caxis_list[y_id][x_id][0]), 0, 1),
+                                interpolation='nearest', cmap=cmap_list[y_id][x_id],interpolation_stage='data')
 
-            elif np.ndim(target_img) == 1 or np.ndim(target_img) > 4:
-                # 4ch以上の画像は表示できないのでエラー返して終了
-                print("imq-Warning: Cannot draw data other than 2-, 3-, and 4-dimensional.")
-                return -1
+            elif np.ndim(tgt_img) == 1 or np.ndim(tgt_img) >= 4:
+                # 画像は表示できないのでエラー返して終了
+                raise ValueError(" imageq can only draw 2 or 3dimensional")
 
             ax.tick_params(labelbottom=False, labelleft=False, labelright=False, labeltop=False)
             ax.tick_params(bottom=False, left=False, right=False, top=False)
@@ -1292,20 +1281,13 @@ def imageq(target_img_list, caxis_list=(0, 0), cmap_list='viridis', disp_cbar=Tr
                 fig.colorbar(ims, cax=ax_cbar)
                 pass
 
+    axes_list = fig.get_axes()[0::2]
+    cbar_list = fig.get_axes()[1::2]
 
-    ############################### q機能追加
-    fig = q_addon(fig, keyboard_dict={'$': q_hotkey__roistats,'%': q_hotkey__roistats2,
-                                      'z': q_hotkey__zoomplot,
-                                      'A':q_hotkey__climAUTO,'W':q_hotkey__climWHOLE,'E':q_hotkey__climEACH,'S':q_hotkey__climSYNC,
-                                      'up':q_hotkey__climSYNCup,'down':q_hotkey__climSYNCdown,'left':q_hotkey__climSYNCleft,'right':q_hotkey__climSYNCright,
-                                      '-':q_hotkey__lineprofH,'i':q_hotkey__lineprofV,'=':q_hotkey__lineprofHmean,'I':q_hotkey__lineprofVmean,
-                                      'm':q_hotkey__roipixval,'h':q_hotkey_util__hist,
-                                      'N':q_hotkey__noise_analyze,'c':q_hotkey__colorchecker
-                                      })
+    fig = q_addon(fig, axes_list,keyboard_dict=keyboard_dict,imageq=True, cbar_list=cbar_list)
 
     ###############################
     # status barの表示変更
-    axes_list = [axe for axe in fig.get_axes() if isinstance(axe, matplotlib.axes._subplots.Subplot)]
     def format_coord(x, y):
         int_x = int(x + 0.5)
         int_y = int(y + 0.5)
@@ -1320,7 +1302,9 @@ def imageq(target_img_list, caxis_list=(0, 0), cmap_list='viridis', disp_cbar=Tr
                     if np.ndim(now_img_val) == 0:
                         return_str = return_str + str(k) + ': ' + '{:.3f}'.format(now_img_val) + '  '
                     else:
-                        return_str = return_str + str(k) + ': <' + '{:.3f}'.format(now_img_val[0]) + ', ' + '{:.3f}'.format(now_img_val[1]) + ', ' + '{:.3f}'.format(now_img_val[2]) + '>  '
+                        return_str = return_str + str(k) + ': <' + '{:.3f}'.format(
+                            now_img_val[0]) + ', ' + '{:.3f}'.format(now_img_val[1]) + ', ' + '{:.3f}'.format(
+                            now_img_val[2]) + '>  '
             else:
                 return_str = return_str + str(k) + ': ###' + '  '
         # 対処には、https://stackoverflow.com/questions/47082466/matplotlib-imshow-formatting-from-cursor-position
@@ -1330,7 +1314,6 @@ def imageq(target_img_list, caxis_list=(0, 0), cmap_list='viridis', disp_cbar=Tr
     for axe in axes_list:
         axe.format_coord = format_coord
 
-    ############################### 表示
     fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)  # 表示範囲調整
     fig.show()
 
@@ -1357,52 +1340,71 @@ HHHHHHHHH     HHHHHHHHH     iiiiiiii       sssssssssss                   ttttttt
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
 
 
-def histq(input_list,
-          interval_list=1.0,
+def histq(tgt_data_list,
+          interval_list=None,
           label_list=None,
-          alpha_list = 0.75,
-          edgecolor_list = 'kutinawa_color',
-          color_list = 'black',
+          alpha_list=0.75,
+          edgecolor_list='kutinawa_color',
+          color_list='kutinawa_color',
           histtype='bar',
           overlay=False
           ):
-
     ############################### 準備
     plt.interactive(False)
     fig = plt.figure()
 
     ############################### 必ず2次元listの形状にする
-    input_list,input_list_for_shape = q_util_shaping_2dlist(input_list)
-    interval_list   = q_util_shaping_2dlist_sub(input_data=interval_list,
-                                                main_list_for_shape=input_list_for_shape)
-    label_list   = q_util_shaping_2dlist_sub(input_data=label_list,
-                                             main_list_for_shape=input_list_for_shape) if label_list else q_util_shaping_2dlist_label_arange(main_list_for_shape=input_list_for_shape)
-    alpha_list   = q_util_shaping_2dlist_sub(input_data=alpha_list,
-                                             main_list_for_shape=input_list_for_shape)
-    edgecolor_list = q_util_shaping_2dlist_color(input_color=edgecolor_list,
-                                                 main_list_for_shape=input_list_for_shape)
-    color_list     = q_util_shaping_2dlist_color(input_color=color_list,
-                                                 main_list_for_shape=input_list_for_shape)
+    tgt_data_list, tgt_shape_template = qutil_data_shaping_2dlist_main(tgt_data_list)
+    if not interval_list:
+        interval_list = []
+        for row in range(len(tgt_data_list)):
+            interval_list.append([])
+            for col in range(len(tgt_data_list[row])):
+                temp_tgt = tgt_data_list[row][col]
+                data_range = np.nanmax(temp_tgt[(temp_tgt != -np.inf) * (temp_tgt != np.inf)]) - np.nanmin(
+                    temp_tgt[(temp_tgt != -np.inf) * (temp_tgt != np.inf)])
+                interval_list[-1].append(data_range / np.sqrt(temp_tgt.size))
+    interval_list = qutil_data_shaping_2dlist_sub(input_data=interval_list,
+                                                  shape_template=tgt_shape_template)
+    # if not label_list:
+    #     label_list = [str(i) for i in range(sum(len(row) for row in tgt_data_list))]
+    if not label_list:
+        label_list = []
+        i = 0
+        for row in range(len(tgt_data_list)):
+            label_list.append([])
+            for col in range(len(tgt_data_list[row])):
+                label_list[-1].append(str(i))
+                i = i + 1
+    label_list = qutil_data_shaping_2dlist_sub(input_data=label_list,
+                                               shape_template=tgt_shape_template)
+    alpha_list = qutil_data_shaping_2dlist_sub(input_data=alpha_list,
+                                               shape_template=tgt_shape_template)
+    edgecolor_list = qutil_color_shaping_2dlist_sub(input_color=edgecolor_list,
+                                                    shape_template=tgt_shape_template)
+    color_list = qutil_color_shaping_2dlist_sub(input_color=color_list,
+                                                shape_template=tgt_shape_template)
 
     ############################### 各描画
-    y_id_max = len(input_list)
-    x_id_max = np.max(np.array([len(i) for i in input_list]))
+    y_id_max = len(tgt_data_list)
+    x_id_max = np.max(np.array([len(i) for i in tgt_data_list]))
     if overlay:
         ax_id = 1
-        ax = fig.add_subplot(1,1,1,picker=True)
+        ax = fig.add_subplot(1, 1, 1, picker=True)
         y_id_max = 1
         x_id_max = 1
 
     x_min = []
     x_max = []
     y_max = []
-    for y_id,temp_list in enumerate(input_list):
-        for x_id,target_data in enumerate(temp_list):
+    for y_id, temp_list in enumerate(tgt_data_list):
+        for x_id, target_data in enumerate(temp_list):
             if not overlay:
-                ax_id = x_id_max*y_id+x_id+1
-                ax = fig.add_subplot(y_id_max,x_id_max,ax_id,picker=True)
+                ax_id = x_id_max * y_id + x_id + 1
+                ax = fig.add_subplot(y_id_max, x_id_max, ax_id, picker=True)
 
-            hist_bins = np.arange(np.nanmin(target_data), np.nanmax(target_data) + interval_list[y_id][x_id]*2, interval_list[y_id][x_id])
+            hist_bins = np.arange(np.nanmin(target_data), np.nanmax(target_data) + interval_list[y_id][x_id] * 2,interval_list[y_id][x_id])
+
             hi = ax.hist(np.squeeze(np.reshape(target_data, (1, -1))),
                          bins=hist_bins,
                          label=label_list[y_id][x_id],
@@ -1418,20 +1420,20 @@ def histq(input_list,
     x_min = np.min(np.array(x_min))
     x_max = np.max(np.array(x_max))
     y_max = np.max(np.array(y_max))
-    x_spc = (x_max-x_min)*0.0495
+    x_spc = (x_max - x_min) * 0.0495
 
     ############################### キーボードショートカット追加
-    fig = q_addon(fig, keyboard_dict={'z': q_hotkey__zoomplot,
-                                      })
+    axes_list = fig.get_axes()
+    fig = q_addon(fig, axes_list, keyboard_dict={'tab': q_hotkey__reset,
+                                                 'p': q_hotkey__png_save, })
 
     ############################### 表示
-    axes_list = fig.get_axes()
     for axe in axes_list:
-        axe.legend(loc='upper right', bbox_to_anchor=(1, 1),prop={ "weight":"bold","size": "large"})
-        axe.set_xlim(x_min-x_spc, x_max+x_spc)
-        axe.set_ylim(0, y_max*1.05)
+        axe.legend(loc='upper right', bbox_to_anchor=(1, 1), prop={"weight": "bold", "size": "large"})
+        axe.set_xlim(x_min - x_spc, x_max + x_spc)
+        axe.set_ylim(0, y_max * 1.05)
 
-    fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)# 表示範囲調整
+    fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)  # 表示範囲調整
     fig.show()
 
     return fig
@@ -1456,120 +1458,118 @@ P::::::::P               l::::::l      oo:::::::::::oo              tt::::::::::
 PPPPPPPPPP               llllllll        ooooooooooo                  ttttttttttt                                          
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
 
-def plotq(input_list_x,
-          input_list_y=None,
-          marker_list = 'None',
-          markersize_list = 7,
+def plotq(tgt_list_x,
+          tgt_list_y=None,
+          marker_list='None',
+          markersize_list=7,
           linestyle_list='-',
           linewidth_list=2,
-          color_list = 'kutinawa_color',
-          alpha_list = 1.0,
-          label_list = None,
+          color_list='kutinawa_color',
+          alpha_list=1.0,
+          label_list=None,
           overlay=True,
-          fig = None,
+          fig=None,
           ):
-
     ############################### 準備
     plt.interactive(False)
     if not fig:
         fig = plt.figure()
 
     ############################### 必ず2次元listの形状にする
-    if input_list_y:
-        input_list_x,input_list_for_shape = q_util_shaping_2dlist(input_list_x)
-        input_list_y,_ = q_util_shaping_2dlist(input_list_y)
+    if tgt_list_y:
+        tgt_list_x, tgt_shape_template = qutil_data_shaping_2dlist_main(tgt_list_x)
+        tgt_list_y = qutil_data_shaping_2dlist_sub(tgt_list_y, tgt_shape_template)
     else:
-        input_list_y,input_list_for_shape = q_util_shaping_2dlist(input_list_x)
-        input_list_x = q_util_shaping_2dlist_arange(input_list_y,input_list_for_shape)
+        tgt_list_y, tgt_shape_template = qutil_data_shaping_2dlist_main(tgt_list_x)
+        tgt_list_x = []
+        for row in range(len(tgt_list_y)):
+            tgt_list_x.append([])
+            for col in range(len(tgt_list_y[row])):
+                tgt_list_x[-1].append(np.arange(len(tgt_list_y[row][col])))
 
-    marker_list      = q_util_shaping_2dlist_sub(input_data=marker_list,
-                                                 main_list_for_shape=input_list_for_shape)
-    markersize_list  = q_util_shaping_2dlist_sub(input_data=markersize_list,
-                                                 main_list_for_shape=input_list_for_shape)
-    linestyle_list   = q_util_shaping_2dlist_sub(input_data=linestyle_list,
-                                                 main_list_for_shape=input_list_for_shape)
-    linewidth_list   = q_util_shaping_2dlist_sub(input_data=linewidth_list,
-                                                 main_list_for_shape=input_list_for_shape)
-    alpha_list       = q_util_shaping_2dlist_sub(input_data=alpha_list,
-                                                 main_list_for_shape=input_list_for_shape)
-    label_list       = q_util_shaping_2dlist_sub(input_data=label_list,
-                                                 main_list_for_shape=input_list_for_shape) if label_list else q_util_shaping_2dlist_label_arange(main_list_for_shape=input_list_for_shape)
-    color_list       = q_util_shaping_2dlist_color(input_color=color_list,
-                                                   main_list_for_shape=input_list_for_shape)
+    marker_list = qutil_data_shaping_2dlist_sub(input_data=marker_list,
+                                                shape_template=tgt_shape_template)
+    markersize_list = qutil_data_shaping_2dlist_sub(input_data=markersize_list,
+                                                    shape_template=tgt_shape_template)
+    linestyle_list = qutil_data_shaping_2dlist_sub(input_data=linestyle_list,
+                                                   shape_template=tgt_shape_template)
+    linewidth_list = qutil_data_shaping_2dlist_sub(input_data=linewidth_list,
+                                                   shape_template=tgt_shape_template)
+    alpha_list = qutil_data_shaping_2dlist_sub(input_data=alpha_list,
+                                               shape_template=tgt_shape_template)
+    if not label_list:
+        label_list = []
+        i = 0
+        for row in range(len(tgt_list_y)):
+            label_list.append([])
+            for col in range(len(tgt_list_y[row])):
+                label_list[-1].append(str(i))
+                i = i + 1
+    label_list = qutil_data_shaping_2dlist_sub(input_data=label_list,
+                                               shape_template=tgt_shape_template)
+    color_list = qutil_color_shaping_2dlist_sub(input_color=color_list,
+                                                shape_template=tgt_shape_template)
 
     ############################### 各描画
-    y_id_max = len(input_list_for_shape)
-    x_id_max = np.max(np.array([len(i) for i in input_list_for_shape]))
+    y_id_max = len(tgt_shape_template)
+    x_id_max = np.max(np.array([len(i) for i in tgt_shape_template]))
     xxx = [np.inf, -np.inf]
     yyy = [np.inf, -np.inf]
     if overlay:
         ax_id = 1
-        ax = fig.add_subplot(1,1,1,picker=True)
+        ax = fig.add_subplot(1, 1, 1, picker=True)
         y_id_max = 1
         x_id_max = 1
 
-    for y_id,temp_list in enumerate(input_list_for_shape):
-        for x_id,temp2_data in enumerate(temp_list):
+    for y_id, temp_list in enumerate(tgt_shape_template):
+        for x_id, temp2_data in enumerate(temp_list):
             if not overlay:
-                ax_id = x_id_max*y_id+x_id+1
-                ax = fig.add_subplot(y_id_max,x_id_max,ax_id,picker=True)
+                ax_id = x_id_max * y_id + x_id + 1
+                ax = fig.add_subplot(y_id_max, x_id_max, ax_id, picker=True)
 
-            ax.plot(np.squeeze(np.reshape(input_list_x[y_id][x_id], (1, -1))),
-                    np.squeeze(np.reshape(input_list_y[y_id][x_id],(1,-1))),
-                    label     = label_list[y_id][x_id],
-                    color     = color_list[y_id][x_id],
-                    alpha     = alpha_list[y_id][x_id],
-                    marker    = marker_list[y_id][x_id],
-                    markersize= markersize_list[y_id][x_id],
-                    linestyle = linestyle_list[y_id][x_id],
-                    linewidth = linewidth_list[y_id][x_id],
+            ax.plot(np.squeeze(np.reshape(tgt_list_x[y_id][x_id], (1, -1))),
+                    np.squeeze(np.reshape(tgt_list_y[y_id][x_id], (1, -1))),
+                    label=label_list[y_id][x_id],
+                    color=color_list[y_id][x_id],
+                    alpha=alpha_list[y_id][x_id],
+                    marker=marker_list[y_id][x_id],
+                    markersize=markersize_list[y_id][x_id],
+                    linestyle=linestyle_list[y_id][x_id],
+                    linewidth=linewidth_list[y_id][x_id],
                     )
 
-            xxx[0] = np.minimum(xxx[0], np.nanmin(input_list_x[y_id][x_id].astype(float)))
-            xxx[1] = np.maximum(xxx[1], np.nanmax(input_list_x[y_id][x_id].astype(float)))
-            yyy[0] = np.minimum(yyy[0], np.nanmin(input_list_y[y_id][x_id].astype(float)))
-            yyy[1] = np.maximum(yyy[1], np.nanmax(input_list_y[y_id][x_id].astype(float)))
-            x_spc = (xxx[1]-xxx[0])*0.0495
-            y_spc = (yyy[1]-yyy[0])*0.0495
+            xxx[0] = np.minimum(xxx[0], np.nanmin(tgt_list_x[y_id][x_id].astype(float)))
+            xxx[1] = np.maximum(xxx[1], np.nanmax(tgt_list_x[y_id][x_id].astype(float)))
+            yyy[0] = np.minimum(yyy[0], np.nanmin(tgt_list_y[y_id][x_id].astype(float)))
+            yyy[1] = np.maximum(yyy[1], np.nanmax(tgt_list_y[y_id][x_id].astype(float)))
+            x_spc = (xxx[1] - xxx[0]) * 0.0495
+            y_spc = (yyy[1] - yyy[0]) * 0.0495
     ############################### キーボードショートカット追加
-    fig = q_addon(fig,
-                  # keyboard_dict={'z': q_hotkey__zoomplot},
-                  roi_coordinate='float')
+    axes_list = fig.get_axes()
+    fig = q_addon(fig, axes_list, keyboard_dict={'tab': q_hotkey__reset,
+                                                 'p': q_hotkey__png_save, })
 
     ############################### 表示
-    for axe in fig.get_axes():
-        axe.legend(loc='upper right', bbox_to_anchor=(1, 1),prop={ "weight":"bold","size": "large"})
+    for axe in axes_list:
+        axe.legend(loc='upper right', bbox_to_anchor=(1, 1), prop={"weight": "bold", "size": "large"})
         axe.set_xlim(xxx[0] - x_spc, xxx[1] + x_spc)
         axe.set_ylim(yyy[0] - y_spc, yyy[1] + y_spc)
 
-    fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)# 表示範囲調整
+    fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)  # 表示範囲調整
     fig.show()
 
     return fig
 
+# plotq([np.random.rand(100),np.random.rand(100)],color_list=['m','c'])
+# histq([np.random.rand(100),np.random.rand(100)],color_list=['m','c'])
+# histq([np.random.rand(100),np.random.rand(100)],)
 
 
-def scatq(input_list_x,
-          input_list_y=None,
-          marker_list = 'o',
-          markersize_list = 9,
-          color_list = 'kutinawa_color',
-          alpha_list = 1.0,
-          label_list = None,
-          overlay=True,
-          fig = None,):
 
-    plotq(input_list_x,
-          input_list_y=input_list_y,
-          marker_list = marker_list,
-          markersize_list = markersize_list,
-          linestyle_list='-',
-          linewidth_list=0,
-          color_list = color_list,
-          alpha_list = alpha_list,
-          label_list = label_list,
-          overlay=overlay,
-          fig = fig,)
-    pass
 
-# fig = imageq([np.random.rand(512,512),np.random.rand(512,512),wa.imread(r"C:\Users\daiki.nakagawa\Downloads\lena_gray.bmp")])
+
+
+
+
+
+
