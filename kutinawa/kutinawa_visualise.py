@@ -1,10 +1,10 @@
-import itertools
 
+from __future__ import print_function, division
 import datetime
 import numpy as np
 
 import matplotlib
-
+rcParams = matplotlib.rcParams
 try:
     matplotlib.use('Qt5Agg')
 except:
@@ -14,10 +14,196 @@ import matplotlib.patches as patches
 from matplotlib.colors import ListedColormap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib import pylab
-
 from matplotlib.widgets import RectangleSelector
+import matplotlib.image as mi
+import matplotlib.cbook as cbook
+from matplotlib.transforms import IdentityTransform,Affine2D
 
 # https://patorjk.com/software/taag/#p=display&f=Graffiti&t=Type%20Something%20      Font "Doh"
+
+"""━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━                                                                                                                                                                                                                                                        
+                                                                                                                                                                                                              
+                                                                                                                                                                                                              
+FFFFFFFFFFFFFFFFFFFFFF                                         tttt                 iiii                                          hhhhhhh                                                                     
+F::::::::::::::::::::F                                      ttt:::t                i::::i                                         h:::::h                                                                     
+F::::::::::::::::::::F                                      t:::::t                 iiii                                          h:::::h                                                                     
+FF::::::FFFFFFFFF::::F                                      t:::::t                                                               h:::::h                                                                     
+  F:::::F       FFFFFFaaaaaaaaaaaaa      ssssssssss   ttttttt:::::ttttttt         iiiiiii    mmmmmmm    mmmmmmm       ssssssssss   h::::h hhhhh          ooooooooooo wwwwwww           wwwww           wwwwwww
+  F:::::F             a::::::::::::a   ss::::::::::s  t:::::::::::::::::t         i:::::i  mm:::::::m  m:::::::mm   ss::::::::::s  h::::hh:::::hhh     oo:::::::::::oow:::::w         w:::::w         w:::::w 
+  F::::::FFFFFFFFFF   aaaaaaaaa:::::ass:::::::::::::s t:::::::::::::::::t          i::::i m::::::::::mm::::::::::mss:::::::::::::s h::::::::::::::hh  o:::::::::::::::ow:::::w       w:::::::w       w:::::w  
+  F:::::::::::::::F            a::::as::::::ssss:::::stttttt:::::::tttttt          i::::i m::::::::::::::::::::::ms::::::ssss:::::sh:::::::hhh::::::h o:::::ooooo:::::o w:::::w     w:::::::::w     w:::::w   
+  F:::::::::::::::F     aaaaaaa:::::a s:::::s  ssssss       t:::::t                i::::i m:::::mmm::::::mmm:::::m s:::::s  ssssss h::::::h   h::::::ho::::o     o::::o  w:::::w   w:::::w:::::w   w:::::w    
+  F::::::FFFFFFFFFF   aa::::::::::::a   s::::::s            t:::::t                i::::i m::::m   m::::m   m::::m   s::::::s      h:::::h     h:::::ho::::o     o::::o   w:::::w w:::::w w:::::w w:::::w     
+  F:::::F            a::::aaaa::::::a      s::::::s         t:::::t                i::::i m::::m   m::::m   m::::m      s::::::s   h:::::h     h:::::ho::::o     o::::o    w:::::w:::::w   w:::::w:::::w      
+  F:::::F           a::::a    a:::::assssss   s:::::s       t:::::t    tttttt      i::::i m::::m   m::::m   m::::mssssss   s:::::s h:::::h     h:::::ho::::o     o::::o     w:::::::::w     w:::::::::w       
+FF:::::::FF         a::::a    a:::::as:::::ssss::::::s      t::::::tttt:::::t     i::::::im::::m   m::::m   m::::ms:::::ssss::::::sh:::::h     h:::::ho:::::ooooo:::::o      w:::::::w       w:::::::w        
+F::::::::FF         a:::::aaaa::::::as::::::::::::::s       tt::::::::::::::t     i::::::im::::m   m::::m   m::::ms::::::::::::::s h:::::h     h:::::ho:::::::::::::::o       w:::::w         w:::::w         
+F::::::::FF          a::::::::::aa:::as:::::::::::ss          tt:::::::::::tt     i::::::im::::m   m::::m   m::::m s:::::::::::ss  h:::::h     h:::::h oo:::::::::::oo         w:::w           w:::w          
+FFFFFFFFFFF           aaaaaaaaaa  aaaa sssssssssss              ttttttttttt       iiiiiiiimmmmmm   mmmmmm   mmmmmm  sssssssssss    hhhhhhh     hhhhhhh   ooooooooooo            www             www                                                                                                                                                  
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
+class GigasImage(mi.AxesImage):
+
+    def __init__(self, *args, **kwargs):
+        self._full_res = None
+        self._full_extent = kwargs.get('extent', None)
+        super(GigasImage, self).__init__(*args, **kwargs)
+        self.invalidate_cache()
+
+    def set_data(self, image_data):
+        self._full_res = image_data
+        self._A = image_data
+
+        if self._A.dtype != np.uint8 and not np.can_cast(self._A.dtype,float):
+            raise TypeError("Image data can not convert to float")
+
+        if (self._A.ndim not in (2, 3) or
+                (self._A.ndim == 3 and self._A.shape[-1] not in (3, 4))):
+                raise TypeError("Invalid dimensions for image data")
+
+        self.invalidate_cache()
+
+    def invalidate_cache(self):
+        self._bounds = None
+        self._imcache = None
+        self._rgbacache = None
+        self._oldxslice = None
+        self._oldyslice = None
+        self._sx, self._sy = None, None
+        self._pixel2world_cache = None
+        self._world2pixel_cache = None
+
+    def set_extent(self, extent):
+        self._full_extent = extent
+        self.invalidate_cache()
+        mi.AxesImage.set_extent(self, extent)
+
+    def get_array(self):
+        """Override to return the full-resolution array"""
+        return self._full_res
+
+    @property
+    def _pixel2world(self):
+        if self._pixel2world_cache is None:
+            extent = self._full_extent
+            if extent is None:
+                self._pixel2world_cache = IdentityTransform()
+            else:
+                self._pixel2world_cache = Affine2D()
+                self._pixel2world.translate(+0.5, +0.5)
+                self._pixel2world.scale((extent[1] - extent[0]) / self._full_res.shape[1],
+                                        (extent[3] - extent[2]) / self._full_res.shape[0])
+                self._pixel2world.translate(extent[0], extent[2])
+            self._world2pixel_cache = None
+        return self._pixel2world_cache
+
+    @property
+    def _world2pixel(self):
+        if self._world2pixel_cache is None:
+            self._world2pixel_cache = self._pixel2world.inverted()
+        return self._world2pixel_cache
+
+    def _scale_to_res(self):
+        x0, x1, sx, y0, y1, sy = extract_matched_slices(axes=self.axes,
+                                                        shape=self._full_res.shape,
+                                                        transform=self._world2pixel)
+        if (self._bounds is not None and
+                sx >= self._sx and sy >= self._sy and
+                x0 >= self._bounds[0] and x1 <= self._bounds[1] and
+                y0 >= self._bounds[2] and y1 <= self._bounds[3]):
+            return
+        self._A = self._full_res[y0:y1:sy, x0:x1:sx]
+        self._A = cbook.safe_masked_invalid(self._A)
+
+        if self.origin == 'upper' and self._full_extent is None:
+            xmin, xmax, ymin, ymax = x0 - .5, x1 - .5, y1 - .5, y0 - .5
+        else:
+            xmin, xmax, ymin, ymax = x0 - .5, x1 - .5, y0 - .5, y1 - .5
+
+        xmin, ymin, xmax, ymax = self._pixel2world.transform([(xmin, ymin), (xmax, ymax)]).ravel()
+
+        mi.AxesImage.set_extent(self, [xmin, xmax, ymin, ymax])
+        self._sx = sx
+        self._sy = sy
+        self._bounds = (x0, x1, y0, y1)
+
+        self.changed()
+
+    def draw(self, renderer, *args, **kwargs):
+        if self._full_res.shape is None:
+            return
+        self._scale_to_res()
+        super(GigasImage, self).draw(renderer, *args, **kwargs)
+
+def extract_matched_slices(axes=None, shape=None, extent=None, transform=IdentityTransform()):
+    ext = (axes.transAxes.transform([(1, 1)]) - axes.transAxes.transform([(0, 0)]))[0]
+
+    # Find the extent of the axes in 'world' coordinates
+    xlim, ylim = axes.get_xlim(), axes.get_ylim()
+
+    # Transform the limits to pixel coordinates
+    ind0 = transform.transform([min(xlim), min(ylim)])
+    ind1 = transform.transform([max(xlim), max(ylim)])
+
+    def _clip(val, lo, hi):
+        return int(max(min(val, hi), lo))
+
+    y0 = _clip(ind0[1] - 5, 0, shape[0] - 1)
+    y1 = _clip(ind1[1] + 5, 1, shape[0])
+    x0 = _clip(ind0[0] - 5, 0, shape[1] - 1)
+    x1 = _clip(ind1[0] + 5, 1, shape[1])
+
+    # Determine the strides that can be used when extracting the array
+    sy = int(max(1, min((y1 - y0) / 5., np.ceil(abs((ind1[1] - ind0[1]) / ext[1])))))
+    sx = int(max(1, min((x1 - x0) / 5., np.ceil(abs((ind1[0] - ind0[0]) / ext[0])))))
+
+    return x0, x1, sx, y0, y1, sy
+
+
+
+def fast_imshow(ax, data, aspect=None, **kwargs):
+    kwargs.pop('interpolation_stage', None)
+    im = GigasImage(ax,
+                    cmap=kwargs.pop('cmap', None),
+                    norm=kwargs.pop('norm', None),
+                    interpolation=kwargs.pop('interpolation', None),
+                    origin=kwargs.pop('origin', None),
+                    extent=kwargs.pop('extent', None),
+                    filternorm=kwargs.pop('filternorm', True),
+                    filterrad=kwargs.pop('filterrad', 4.0),
+                    resample=kwargs.pop('resample', False),
+                    **kwargs)
+    im.set_data(data)
+
+    _stored = np.ma.array(data)  # フル解像度データを MaskedArray で保持
+    im.get_array = lambda: _stored
+
+    # ax.add_image() は ArtistList に対応した公式 API
+    ax.add_image(im)
+
+    # 軸範囲をデータ座標に合わせて更新
+    # imshow の extent=(left, right, bottom, top) から算出
+    ext = kwargs.get('extent', None)
+    if ext is not None:
+        ax.update_datalim([[ext[0], ext[2]], [ext[1], ext[3]]])
+    else:
+        h, w = data.shape[:2]
+        print(h,w)
+        ax.update_datalim([[-0.5, -0.5], [w - 0.5, h - 0.5]])
+    ax.autoscale_view()
+
+
+    _origin = im.origin if hasattr(im, 'origin') else (im.get_extent()[2] if hasattr(im, 'get_extent') else 'upper')
+    if _origin == 'upper' or _origin is None:
+        ymin, ymax = ax.get_ylim()
+        if ymin < ymax:  # まだ反転していない場合のみ反転
+            ax.set_ylim(ymax, ymin)
+
+
+    if aspect is not None:
+        ax.set_aspect(aspect)
+
+    return im
+
 
 """━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━                                                                                                                                                                                                                                                        
         CCCCCCCCCCCCC                           lllllll                                                     lllllll        iiii                                      tttt          
@@ -271,7 +457,8 @@ def q_hotkey__dummy(fig, event, state):
 
 
 def q_hotkey__png_save(fig, event, state):
-    fig.savefig(datetime.datetime.now().strftime('q-%Y_%m_%d_%H_%M_%S') + '.png', bbox_inches='tight')
+    # fig.savefig(datetime.datetime.now().strftime('q-%Y_%m_%d_%H_%M_%S') + '.png', bbox_inches='tight')
+    fig.savefig(datetime.datetime.now().strftime('q-%Y_%m_%d_%H_%M_%S') + '.png', bbox_inches=fig.bbox_inches)
     pass
 
 
@@ -1188,30 +1375,45 @@ IIIIIIIIII     mmmmmm   mmmmmm   mmmmmm       aaaaaaaaaa  aaaa         gggggggg:
                                                                        ggg::::::ggg                             
                                                                           gggggg                                                                                                                                                                               
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
+def imageq(tgt_img_list,caxis_list=(0, 0),cmap_list='viridis',disp_cbar=True,fig=None,mode='comp',fast_mode=True):
+    # ── 非ブロッキング表示: plt.ion() で interactive ON ─────────────────────
+    plt.ion()
 
-
-def imageq(tgt_img_list, caxis_list=(0, 0), cmap_list='viridis', disp_cbar=True, fig=None, mode='comp'):
-    plt.interactive(False)
-    # fig受け取っていなければ新規作成
+    # ── Figure の準備 ────────────────────────────────────────────────────────
     if not fig:
         fig = plt.figure()
 
-    # tgt_shape_templateをお手本配列形状としてパラメータ類の形状成形、必ず2次元listの形状にする
+    # ── パラメータ形状の整形（imageq と同一） ────────────────────────────────
     tgt_img_list, tgt_shape_template = qutil_data_shaping_2dlist_main(tgt_img_list)
     caxis_list = qutil_data_shaping_2dlist_sub(caxis_list, tgt_shape_template)
-    cmap_list = qutil_data_shaping_2dlist_sub(cmap_list, tgt_shape_template)
-    keyboard_dict = {'tab': q_hotkey__reset, 'n': q_hotkey__mousemode_Normal, 'r': q_hotkey__mousemode_ROI,
-                     'p': q_hotkey__png_save,
-                     'A': q_hotkey__climAUTO, 'W': q_hotkey__climWHOLE, 'E': q_hotkey__climEACH,
-                     'S': q_hotkey__climSYNC,
-                     '>': q_hotkey__climMANUAL_top_down, 'alt+>': q_hotkey__climMANUAL_top_up,
-                     'up': q_hotkey__climSYNCup, 'down': q_hotkey__climSYNCdown,
-                     'left': q_hotkey__climSYNCleft, 'right': q_hotkey__climSYNCright,
-                     'i': q_hotkey__lineprofV, '-': q_hotkey__lineprofH, 'I': q_hotkey__lineprofVmean,
-                     '=': q_hotkey__lineprofHmean,
-                     '#': q_hotkey__roistats, 'H': q_hotkey__ROIhist,
-                     'm':q_hotkey__switch_cmap_linear_gamma,
-                     }
+    cmap_list  = qutil_data_shaping_2dlist_sub(cmap_list,  tgt_shape_template)
+
+    # ── ホットキー辞書（imageq と同一） ──────────────────────────────────────
+    keyboard_dict = {
+        'tab': q_hotkey__reset,
+        'n':   q_hotkey__mousemode_Normal,
+        'r':   q_hotkey__mousemode_ROI,
+        'P':   q_hotkey__png_save,
+        'A':   q_hotkey__climAUTO,
+        'W':   q_hotkey__climWHOLE,
+        'E':   q_hotkey__climEACH,
+        'S':   q_hotkey__climSYNC,
+        '>':       q_hotkey__climMANUAL_top_down,
+        'alt+>':   q_hotkey__climMANUAL_top_up,
+        'up':    q_hotkey__climSYNCup,
+        'down':  q_hotkey__climSYNCdown,
+        'left':  q_hotkey__climSYNCleft,
+        'right': q_hotkey__climSYNCright,
+        'i':  q_hotkey__lineprofV,
+        '-':  q_hotkey__lineprofH,
+        'I':  q_hotkey__lineprofVmean,
+        '=':  q_hotkey__lineprofHmean,
+        '#':  q_hotkey__roistats,
+        'H':  q_hotkey__ROIhist,
+        'M':  q_hotkey__switch_cmap_linear_gamma,
+    }
+
+    # ── mode='layer' の前処理（imageq と同一） ───────────────────────────────
     if mode == 'layer':
         tgt_img_list_layer       = [[tgt_img_list[0][0]      ]]
         tgt_shape_template_layer = [[tgt_shape_template[0][0]]]
@@ -1223,98 +1425,112 @@ def imageq(tgt_img_list, caxis_list=(0, 0), cmap_list='viridis', disp_cbar=True,
                 tgt_shape_template_layer[0].append(tgt_shape_template[y_id][x_id])
                 caxis_list_layer[0].append(caxis_list[y_id][x_id])
                 cmap_list_layer[0].append(cmap_list[y_id][x_id])
-        tgt_img_list        = tgt_img_list_layer
-        tgt_shape_template  = tgt_shape_template_layer
-        caxis_list          = caxis_list_layer
-        cmap_list           = cmap_list_layer
+        tgt_img_list       = tgt_img_list_layer
+        tgt_shape_template = tgt_shape_template_layer
+        caxis_list         = caxis_list_layer
+        cmap_list          = cmap_list_layer
+        keyboard_dict.update([('f' + str(i), q_hotkey__layer) for i in np.arange(1, 13)])
 
-        keyboard_dict.update([('f'+str(i),q_hotkey__layer) for i in np.arange(1,13)])
-
-
-    # 各imshow描画
+    # ── 各 imshow 描画 ────────────────────────────────────────────────────────
     y_id_max = len(tgt_shape_template)
-    x_id_max = np.max(np.array([len(i) for i in tgt_shape_template]))
+    x_id_max = int(np.max(np.array([len(i) for i in tgt_shape_template])))
+
     for y_id in range(len(tgt_shape_template)):
         for x_id in range(len(tgt_shape_template[y_id])):
 
-            if mode=='layer':
-                if y_id+x_id==0:
-                    ax = fig.add_subplot(13, 12, (1,144), picker=True)
+            # subplot の追加
+            if mode == 'layer':
+                if y_id + x_id == 0:
+                    ax = fig.add_subplot(13, 12, (1, 144), picker=True)
                 else:
-                    ax = fig.add_subplot(13, 12, 144+x_id, picker=True)
+                    ax = fig.add_subplot(13, 12, 144 + x_id, picker=True)
             else:
-                ax = fig.add_subplot(y_id_max, x_id_max, x_id_max * y_id + x_id + 1, picker=True)
-
+                ax = fig.add_subplot(y_id_max, x_id_max,x_id_max * y_id + x_id + 1,picker=True)
             # 描画画像指定
             tgt_img = tgt_img_list[y_id][x_id]
+
             # caxis指定がmin>=maxの場合、画素値の最小最大から自動でcaxis指定
             if caxis_list[y_id][x_id][0] >= caxis_list[y_id][x_id][1]:
-                # inf、nanを除いたmin-max
-                caxis_list[y_id][x_id] = (np.nanmin(tgt_img[(tgt_img != -np.inf) * (tgt_img != np.inf)]),
-                                          np.nanmax(tgt_img[(tgt_img != -np.inf) * (tgt_img != np.inf)]))
+                valid = tgt_img[(tgt_img != -np.inf) & (tgt_img != np.inf)]
+                caxis_list[y_id][x_id] = (float(np.nanmin(valid)),float(np.nanmax(valid)))
 
-            # 各subplot描画
-            ims = []
-            if np.ndim(tgt_img) == 2:  # 1ch画像の場合
-                ims = ax.imshow(tgt_img.astype(float), interpolation='nearest', cmap=cmap_list[y_id][x_id],interpolation_stage='data',)
+            # ── imshow ──────────────────────────────
+            ims = None
+            if np.ndim(tgt_img) == 2:
+                # 2ch（グレースケール）画像
+                if fast_mode:
+                    ims = fast_imshow(ax,tgt_img.astype(float),interpolation='nearest',cmap=cmap_list[y_id][x_id],interpolation_stage='data',aspect='equal')
+                else:
+                    ims = ax.imshow(tgt_img.astype(float), interpolation='nearest', cmap=cmap_list[y_id][x_id],interpolation_stage='data',aspect='equal')
                 ims.set_clim(caxis_list[y_id][x_id][0], caxis_list[y_id][x_id][1])
-
-            elif np.ndim(tgt_img) == 3:  # 2ch以上画像の場合
-                # 画像をcmin~cmaxのレンジで正規化するため、値域調整
-                print(
-                    "imq-Warning: The image was normalized to 0-1 and clipped in the cmin-cmax range for a 3-channel image.")
-                ims = ax.imshow(np.clip((tgt_img.astype(float) - caxis_list[y_id][x_id][0]) / (
-                            caxis_list[y_id][x_id][1] - caxis_list[y_id][x_id][0]), 0, 1),
-                                interpolation='nearest', cmap=cmap_list[y_id][x_id],interpolation_stage='data')
+            elif np.ndim(tgt_img) == 3:
+                # 3ch 画像: cmin〜cmax で 0-1 に正規化してから表示
+                print("imq-Warning: The image was normalized to 0-1 and clipped in the cmin-cmax range for a 3-channel image.")
+                cmin, cmax = caxis_list[y_id][x_id]
+                norm_img = np.clip((tgt_img.astype(float) - cmin) / (cmax - cmin),0, 1)
+                if fast_mode:
+                    ims = fast_imshow(ax, norm_img, interpolation='nearest', cmap=cmap_list[y_id][x_id], interpolation_stage='data',aspect='equal')
+                else:
+                    ims = ax.imshow(norm_img,interpolation='nearest', cmap=cmap_list[y_id][x_id], interpolation_stage='data',aspect='equal')
 
             elif np.ndim(tgt_img) == 1 or np.ndim(tgt_img) >= 4:
-                # 画像は表示できないのでエラー返して終了
-                raise ValueError(" imageq can only draw 2 or 3dimensional")
+                raise ValueError("imageq_fast can only draw 2 or 3 dimensional images")
 
-            ax.tick_params(labelbottom=False, labelleft=False, labelright=False, labeltop=False)
-            ax.tick_params(bottom=False, left=False, right=False, top=False)
+            # 軸ラベル・目盛り非表示
+            ax.tick_params(labelbottom=False,labelleft=False,labelright=False,labeltop=False,
+                           bottom=False,left=False,right=False,top=False)
 
-            if disp_cbar:
-                divider = make_axes_locatable(ax)
-                ax_cbar = divider.new_horizontal(size="5%", pad=0.075)
+            # カラーバー
+            if disp_cbar and ims is not None:
+                divider  = make_axes_locatable(ax)
+                ax_cbar  = divider.new_horizontal(size="5%", pad=0.075)
                 fig.add_axes(ax_cbar)
                 fig.colorbar(ims, cax=ax_cbar)
-                pass
 
-    axes_list = fig.get_axes()[0::2]
-    cbar_list = fig.get_axes()[1::2]
+    # ── axes_list / cbar_list の取得 ─────────────────────────────────────────
+    if disp_cbar:
+        # 軸が img, cbar, img, cbar, ... の順で追加されているため偶数番目が img
+        axes_list     = fig.get_axes()[0::2]
+        cbar_list_out = fig.get_axes()[1::2]
+    else:
+        axes_list     = fig.get_axes()
+        cbar_list_out = []
 
-    fig = q_addon(fig, axes_list,keyboard_dict=keyboard_dict,imageq=True, cbar_list=cbar_list)
+    # ── マウス・キーボード拡張（q_addon）の適用 ──────────────────────────────
+    fig = q_addon(fig,axes_list,keyboard_dict=keyboard_dict,imageq=True,cbar_list=cbar_list_out)
 
-    ###############################
-    # status barの表示変更
+    # ── ステータスバーへのピクセル値表示（imageq と同一） ───────────────────
     def format_coord(x, y):
         int_x = int(x + 0.5)
         int_y = int(y + 0.5)
-        return_str = 'x=' + str(int_x) + ', y=' + str(int_y) + ' |  '
+        s = 'x=' + str(int_x) + ', y=' + str(int_y) + ' |  '
         for k, axe in enumerate(axes_list):
-            now_img = axe.images[0].get_array().data
-            if 0 <= int_x < np.shape(now_img)[1] and 0 <= int_y < np.shape(now_img)[0]:
-                now_img_val = now_img[int_y, int_x]
-                if np.sum(np.isnan(now_img_val)) or np.sum(np.isinf(now_img_val)):
-                    return_str = return_str + str(k) + ': ###' + '  '
+            img_data = axe.images[0].get_array().data
+            h, w = np.shape(img_data)[:2]
+            if 0 <= int_x < w and 0 <= int_y < h:
+                v = img_data[int_y, int_x]
+                if np.any(np.isnan(v)) or np.any(np.isinf(v)):
+                    s += str(k) + ': ###  '
+                elif np.ndim(v) == 0:
+                    s += str(k) + ': ' + '{:.3f}'.format(v) + '  '
                 else:
-                    if np.ndim(now_img_val) == 0:
-                        return_str = return_str + str(k) + ': ' + '{:.3f}'.format(now_img_val) + '  '
-                    else:
-                        return_str = return_str + str(k) + ': <' + '{:.3f}'.format(
-                            now_img_val[0]) + ', ' + '{:.3f}'.format(now_img_val[1]) + ', ' + '{:.3f}'.format(
-                            now_img_val[2]) + '>  '
+                    s += (str(k) + ': <'+ '{:.3f}'.format(v[0]) + ', '+ '{:.3f}'.format(v[1]) + ', '+ '{:.3f}'.format(v[2]) + '>  ')
             else:
-                return_str = return_str + str(k) + ': ###' + '  '
-        # 対処には、https://stackoverflow.com/questions/47082466/matplotlib-imshow-formatting-from-cursor-position
-        # のような実装が必要になり、別の関数＋matplotlibの関数を叩くが必要ありめんどくさい
-        return return_str
+                s += str(k) + ': ###  '
+        return s
 
     for axe in axes_list:
         axe.format_coord = format_coord
 
-    fig.subplots_adjust(left=0.075, bottom=0.075, right=0.925, top=0.925, wspace=0.1, hspace=0.1)  # 表示範囲調整
+    # ── レイアウト調整・表示 ──────────────────────────────────────────────────
+    fig.subplots_adjust(
+        left=0.075, bottom=0.075,
+        right=0.925, top=0.925,
+        wspace=0.1, hspace=0.1
+    )
+
+    # plt.ion() により fig.show() は非ブロッキング。
+    # ウィンドウが表示されたままコンソールで他の関数を実行できる。
     fig.show()
 
     return fig
@@ -1425,7 +1641,7 @@ def histq(tgt_data_list,
     ############################### キーボードショートカット追加
     axes_list = fig.get_axes()
     fig = q_addon(fig, axes_list, keyboard_dict={'tab': q_hotkey__reset,
-                                                 'p': q_hotkey__png_save, })
+                                                 'P': q_hotkey__png_save, })
 
     ############################### 表示
     for axe in axes_list:
@@ -1547,7 +1763,7 @@ def plotq(tgt_list_x,
     ############################### キーボードショートカット追加
     axes_list = fig.get_axes()
     fig = q_addon(fig, axes_list, keyboard_dict={'tab': q_hotkey__reset,
-                                                 'p': q_hotkey__png_save, })
+                                                 'P': q_hotkey__png_save, })
 
     ############################### 表示
     for axe in axes_list:

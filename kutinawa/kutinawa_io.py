@@ -10,6 +10,7 @@ import json
 
 import numpy as np
 from PIL import Image, ImageSequence, TiffImagePlugin, ExifTags
+Image.MAX_IMAGE_PIXELS = 1000000000
 
 from .kutinawa_resize import raster_2d_to_1d
 
