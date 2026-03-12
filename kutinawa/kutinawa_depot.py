@@ -77,7 +77,7 @@ def snr_psnr(ref_img,eval_img,maximum_signal_range):
     return snr,psnr
 
 
-def ssim(ref_img, tgt_img, fil_h = 11,fil_w = 11,ref_img_range = np.NaN,C1_gain = 0.01,C2_gain = 0.03):
+def ssim(ref_img, tgt_img, fil_h = 11,fil_w = 11,ref_img_range = np.nan,C1_gain = 0.01,C2_gain = 0.03):
     if np.isnan(ref_img_range):
         ref_img_range = np.nanmax(ref_img)-np.nanmin(ref_img)
     C1 = (ref_img_range*C1_gain)*(ref_img_range*C1_gain)
@@ -1342,3 +1342,4 @@ def quick_hull(target_points):
     result_points = result_points[np.argsort(-np.arctan2(np.array(result_points)[:, 1] - weight_point[1], np.array(result_points)[:, 0] - weight_point[0]))]
 
     return result_points
+
