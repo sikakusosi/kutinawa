@@ -1375,7 +1375,7 @@ IIIIIIIIII     mmmmmm   mmmmmm   mmmmmm       aaaaaaaaaa  aaaa         gggggggg:
                                                                        ggg::::::ggg                             
                                                                           gggggg                                                                                                                                                                               
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
-def imageq(tgt_img_list,caxis_list=(0, 0),cmap_list='viridis',disp_cbar=True,fig=None,mode='comp',fast_mode=True):
+def imageq(tgt_img_list,caxis_list=(0, 0),cmap_list='viridis',fig=None,mode='comp',fast_mode=True):
     # ── 非ブロッキング表示: plt.ion() で interactive ON ─────────────────────
     plt.ion()
 
@@ -1480,21 +1480,45 @@ def imageq(tgt_img_list,caxis_list=(0, 0),cmap_list='viridis',disp_cbar=True,fig
             ax.tick_params(labelbottom=False,labelleft=False,labelright=False,labeltop=False,
                            bottom=False,left=False,right=False,top=False)
 
-            # カラーバー
-            if disp_cbar and ims is not None:
+            # カラーバー（ヒストグラム重畳）
+            if ims is not None:
                 divider  = make_axes_locatable(ax)
                 ax_cbar  = divider.new_horizontal(size="5%", pad=0.075)
                 fig.add_axes(ax_cbar)
                 fig.colorbar(ims, cax=ax_cbar)
 
-    # ── axes_list / cbar_list の取得 ─────────────────────────────────────────
-    if disp_cbar:
-        # 軸が img, cbar, img, cbar, ... の順で追加されているため偶数番目が img
-        axes_list     = fig.get_axes()[0::2]
-        cbar_list_out = fig.get_axes()[1::2]
-    else:
-        axes_list     = fig.get_axes()
-        cbar_list_out = []
+                # cmapから最も遠い1色を選択
+                cmap_obj = plt.get_cmap(cmap_list[y_id][x_id])
+                cmap_samples = cmap_obj(np.linspace(0, 1, 32))[:, :3]
+                candidates = np.array([[1, 1, 1], [0, 0, 0], [1, 0, 0], [0, 1, 0],   [0, 0, 1],
+                                       [1, 1, 0], [1, 0, 1], [0, 1, 1], [1, 0.5, 0], [0.5, 0, 1],])
+                # 各候補とcmap全サンプルとの最小距離を算出し、それが最大の候補を選択
+                dists = np.min(np.linalg.norm(
+                    candidates[:, None, :] - cmap_samples[None, :, :], axis=2
+                ), axis=1)
+                best = candidates[np.argmax(dists)]
+                bar_color = (*best, 0.45)
+
+                # ヒストグラムをカラーバー上に重畳
+                bin_num = 256
+                ax_hist = ax_cbar.twiny()
+                flat = tgt_img.ravel()
+                flat = flat[np.isfinite(flat)]
+                vmin = np.min(flat)
+                vmax = np.max(flat)
+                counts, edges = np.histogram(flat, bins=bin_num, range=(vmin, vmax))
+                centers = 0.5 * (edges[:-1] + edges[1:])
+                ax_hist.barh(centers, counts, height=(vmax - vmin) / bin_num,
+                             color=bar_color, edgecolor='none', alpha=0.45)
+                ax_hist.set_ylim(vmin, vmax)
+                ax_hist.set_xlim(0, counts.max() * 1.05 if counts.max() > 0 else 1)
+                ax_hist.tick_params(labelbottom=False, labeltop=False,
+                                    bottom=False, top=False)
+                ax_hist.set_facecolor('none')
+
+    # 軸が img, hist, cbar, img, hist, cbar, ... の順（3つ刻み）
+    axes_list     = fig.get_axes()[0::3]
+    cbar_list_out = fig.get_axes()[2::3]
 
     # ── マウス・キーボード拡張（q_addon）の適用 ──────────────────────────────
     fig = q_addon(fig,axes_list,keyboard_dict=keyboard_dict,imageq=True,cbar_list=cbar_list_out)
