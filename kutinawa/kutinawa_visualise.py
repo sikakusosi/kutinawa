@@ -1,6 +1,7 @@
 
 from __future__ import print_function, division
 import datetime
+from functools import lru_cache
 import numpy as np
 
 import matplotlib
@@ -187,7 +188,6 @@ def fast_imshow(ax, data, aspect=None, **kwargs):
         ax.update_datalim([[ext[0], ext[2]], [ext[1], ext[3]]])
     else:
         h, w = data.shape[:2]
-        print(h,w)
         ax.update_datalim([[-0.5, -0.5], [w - 0.5, h - 0.5]])
     ax.autoscale_view()
 
@@ -281,6 +281,22 @@ PPPPPPPPPP                rrrrrrr                 iiiiiiii       nnnnnn    nnnnn
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
 
 
+def qutil_table_cell_str(cell_data, format_alignment='<', format_min_w=12, format_significant_digits=5):
+    """
+    table_print用に表の1セルを文字列化する。
+    3ch画像のROI統計値のように要素が配列の場合は <r, g, b> 形式にする。
+    """
+    if isinstance(cell_data, str):
+        return ('{:' + format_alignment + str(format_min_w) + '}').format(cell_data)
+    elif np.ndim(cell_data) == 0:
+        return ('{:' + format_alignment + str(format_min_w) + '.' + str(format_significant_digits) + 'f}'
+                ).format(float(cell_data))
+    else:
+        num_format = '{:.' + str(format_significant_digits) + 'f}'
+        cell_str = '<' + ', '.join([num_format.format(float(v)) for v in np.ravel(cell_data)]) + '>'
+        return ('{:' + format_alignment + str(format_min_w) + '}').format(cell_str)
+
+
 def table_print(data, headers=[], table_mode='adapt', format_alignment='<', format_min_w=12,
                 format_significant_digits=5):
     """
@@ -293,59 +309,45 @@ def table_print(data, headers=[], table_mode='adapt', format_alignment='<', form
     :param format_significant_digits:                  小数の有効桁
     :return:
     """
-    temp_format = '{:' + format_alignment + str(format_min_w) + '.' + str(
-        format_significant_digits) + 'f}'  # '{:<12.5f}'
-    # temp_format_header = '{:' + format_alignment + str(format_min_w) + '}'
-
-    # dataを必ず充填済みの２次元listにする
-    table_hw = np.shape(data)
+    # 表の列数を取得
+    # 行ごとに要素数が異なっていても、3ch画像の統計値のように要素が配列であっても扱えるようにする
+    table_w = max([len(y) for y in data] + [len(headers)])
 
     # header不足があれば追加
     lh = len(headers)
-    if len(headers) < table_hw[1]:
-        for i in np.arange(table_hw[1] - lh):
+    if lh < table_w:
+        for i in np.arange(table_w - lh):
             headers.append('Col ' + str(i + lh))
 
-    # 表の横幅取得
-    # max_width_list = np.array([[len(temp_format.format(x)) for x in y] for y in data])
-    width_list = []
-    for y in data + [headers]:
-        width_list.append([])
-        for i, x in enumerate(y):
-            if type(x) is str:
-                now_pf = '{:' + format_alignment + str(format_min_w) + '}'
-            else:
-                now_pf = '{:' + format_alignment + str(format_min_w) + '.' + str(format_significant_digits) + 'f}'
-            width_list[-1].append(len(now_pf.format(x)))
-    width_list = np.array(width_list)
+    # 先に全セルを文字列化してから列幅を決める
+    str_data = [[qutil_table_cell_str(x, format_alignment, format_min_w, format_significant_digits) for x in y]
+                for y in data]
+    str_headers = [qutil_table_cell_str(hd, format_alignment, format_min_w, format_significant_digits)
+                   for hd in headers]
 
+    # 表の横幅取得
     if table_mode == 'equal':
-        temp = np.max(width_list)
-        max_width_list = [temp for i in np.arange(table_hw[1])]
+        temp = max([len(x) for y in str_data + [str_headers] for x in y])
+        max_width_list = [temp for i in np.arange(table_w)]
     elif table_mode == 'adapt':
-        max_width_list = [np.max(width_list[:, i]) for i in np.arange(table_hw[1])]
+        max_width_list = []
+        for i in np.arange(table_w):
+            max_width_list.append(max([len(y[i]) for y in str_data + [str_headers] if i < len(y)]))
 
     # print
     print(end='│')
-    for i, hd in enumerate(headers):
-        now_pf = '{:' + format_alignment + str(max_width_list[i]) + '}'
-        print(now_pf.format(hd), end='│')
+    for i, hd in enumerate(str_headers):
+        print(('{:' + format_alignment + str(max_width_list[i]) + '}').format(hd), end='│')
 
     print(end='\n╞')
-    for i, hd in enumerate(headers[:-1]):
-        now_pf = '{:' + format_alignment + str(max_width_list[i]) + '}'
-        print(now_pf.format('═' * max_width_list[i]), end='╪')
-    now_pf = '{:' + format_alignment + str(max_width_list[-1]) + '}'
-    print(now_pf.format('═' * max_width_list[-1]), end='╡')
+    for i in np.arange(table_w - 1):
+        print('═' * max_width_list[i], end='╪')
+    print('═' * max_width_list[-1], end='╡')
 
-    for y in data:
+    for y in str_data:
         print(end='\n│')
         for i, x in enumerate(y):
-            if type(x) is str:
-                now_pf = '{:' + format_alignment + str(max_width_list[i]) + '}'
-            else:
-                now_pf = '{:' + format_alignment + str(max_width_list[i]) + '.' + str(format_significant_digits) + 'f}'
-            print(now_pf.format(x), end='│')
+            print(('{:' + format_alignment + str(max_width_list[i]) + '}').format(x), end='│')
 
     print("")
     pass
@@ -473,20 +475,16 @@ def q_hotkey__roiset(fig, event, state):
     if state.mouse_mode == 'ROI':
         pos = (np.array(state.rect_list[state.current_axes_index].extents) + 0.5).astype(int)
         if pos[3] - pos[2] == 0 and pos[1] - pos[0] == 0:
-            # [roi[event.key].set(xy=(-0.5, -0.5), width=0, height=0) for roi in state.roi_patch_list]
             for roi in state.roi_patch_list:
-                roi[event.key].set(xy=(-0.5, -0.5), width=0, height=0)
-            # [roi_text[event.key].set(x=-0.5, y=-0.5, alpha=0) for roi_text in state.roi_text_list]
+                roi[event.key].set(xy=(-0.5, -0.5), width=0, height=0, visible=False)
             for roi_text in state.roi_text_list:
-                roi_text[event.key].set(x=-0.5, y=-0.5, alpha=0)
+                roi_text[event.key].set(x=-0.5, y=-0.5, visible=False)
         else:
             pos = pos + np.array([-0.5, 0.5, -0.5, 0.5])
-            # [roi[event.key].set(xy=(pos[0], pos[2]), height=pos[3] - pos[2], width=pos[1] - pos[0]) for roi in state.roi_patch_list]
-            # [roi_text[event.key].set(x=pos[0], y=pos[2], alpha=1) for roi_text in state.roi_text_list]
             for roi in state.roi_patch_list:
-                roi[event.key].set(xy=(pos[0], pos[2]), height=pos[3] - pos[2], width=pos[1] - pos[0])
+                roi[event.key].set(xy=(pos[0], pos[2]), height=pos[3] - pos[2], width=pos[1] - pos[0], visible=True)
             for roi_text in state.roi_text_list:
-                roi_text[event.key].set(x=pos[0], y=pos[2], alpha=1)
+                roi_text[event.key].set(x=pos[0], y=pos[2], visible=True)
     pass
 
 
@@ -588,20 +586,17 @@ def q_hotkey__climAUTO(fig, event, state):
     now_lim_x = np.clip((np.array(c_axe.get_xlim()) + 0.5).astype(int), 0, None)
     now_lim_y = np.clip((np.array(c_axe.get_ylim()) + 0.5).astype(int), 0, None)
     temp = c_axe.images[0].get_array().data[now_lim_y[1]:now_lim_y[0], now_lim_x[0]:now_lim_x[1]]
-    c_axe.images[0].set_clim(
-        (np.nanmin(temp[(temp != -np.inf) * (temp != np.inf)]), np.nanmax(temp[(temp != -np.inf) * (temp != np.inf)])))
+    c_axe.images[0].set_clim(qutil_finite_minmax(temp))
     pass
 
 
 def q_hotkey__climWHOLE(fig, event, state):
     now_lim_x = np.clip((np.array(state.axes_list[0].get_xlim()) + 0.5).astype(int), 0, None)
     now_lim_y = np.clip((np.array(state.axes_list[0].get_ylim()) + 0.5).astype(int), 0, None)
-    whole_max = np.nanmax(np.array(
-        [np.nanmax(axe.images[0].get_array().data[now_lim_y[1]:now_lim_y[0], now_lim_x[0]:now_lim_x[1]]) for axe in
-         state.axes_list]))
-    whole_min = np.nanmin(np.array(
-        [np.nanmin(axe.images[0].get_array().data[now_lim_y[1]:now_lim_y[0], now_lim_x[0]:now_lim_x[1]]) for axe in
-         state.axes_list]))
+    minmax_list = np.array([qutil_finite_minmax(
+        axe.images[0].get_array().data[now_lim_y[1]:now_lim_y[0], now_lim_x[0]:now_lim_x[1]]) for axe in
+        state.axes_list])
+    whole_min, whole_max = np.min(minmax_list[:, 0]), np.max(minmax_list[:, 1])
     for axe in state.axes_list:
         axe.images[0].set_clim(whole_min, whole_max)
     pass
@@ -612,8 +607,7 @@ def q_hotkey__climEACH(fig, event, state):
     now_lim_y = np.clip((np.array(state.axes_list[0].get_ylim()) + 0.5).astype(int), 0, None)
     for axe in state.axes_list:
         temp = axe.images[0].get_array().data[now_lim_y[1]:now_lim_y[0], now_lim_x[0]:now_lim_x[1]]
-        axe.images[0].set_clim((np.nanmin(temp[(temp != -np.inf) * (temp != np.inf)]),
-                                np.nanmax(temp[(temp != -np.inf) * (temp != np.inf)])))
+        axe.images[0].set_clim(qutil_finite_minmax(temp))
     pass
 
 
@@ -1060,8 +1054,10 @@ def q_addon(fig, axes_list=None, keyboard_dict=None, imageq=False, cbar_list=Non
             roi_text_dict = {}
 
             for i_r, roi_key in enumerate(roi_keys):
-                rect = patches.Rectangle(xy=(-0.5, -0.5), width=0, height=0, ec=kutinawa_color[i_r], fill=False)
-                text = axe.text(-0.5, -0.5, s=roi_key, c=kutinawa_color[i_r], ha='right', va='top', alpha=0,
+                # 未設置のROIはvisible=Falseにし、再描画時に一切レンダリングされないようにする
+                rect = patches.Rectangle(xy=(-0.5, -0.5), width=0, height=0, ec=kutinawa_color[i_r], fill=False,
+                                         visible=False)
+                text = axe.text(-0.5, -0.5, s=roi_key, c=kutinawa_color[i_r], ha='right', va='top', visible=False,
                                 weight='bold')
 
                 axe.add_patch(rect)
@@ -1221,6 +1217,74 @@ DDDDDDDDDDDDD          aaaaaaaaaa  aaaa          ttttttttttt    aaaaaaaaaa  aaaa
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
 
 
+def qutil_display_array(input_img, copy=False):
+    """
+    表示用の配列を返す。
+    dtypeに応じて必要な場合のみキャストし、不要な全画素コピーを避ける。
+    - 2byte以下の整数、float16/float32 : float32(値は劣化しない)
+    - それ以外(int32/int64/float64 等)  : float64
+    - 既に目的のdtypeならコピーせず参照を返す
+    :param copy: Trueにすると、キャスト不要な場合でも必ずコピーを取る。
+                 表示後に元配列を書き換えても表示内容を変えたくない場合に使う。
+    """
+    input_img = np.asarray(input_img)
+    if input_img.dtype == np.float32 or input_img.dtype == np.float64:
+        return input_img.copy() if copy else input_img
+    elif input_img.dtype.itemsize <= 2:
+        return input_img.astype(np.float32)
+    else:
+        return input_img.astype(np.float64)
+
+
+def qutil_finite_minmax(tgt_array):
+    """
+    NaN・±infを除いた(min, max)をfloatで返す。
+    巨大な一時配列を作らないよう、マスク＋コピーは±infを含む場合のみ行う。
+    """
+    if tgt_array.dtype.kind in 'bui':  # bool・整数はNaN/infを持ち得ない
+        return float(tgt_array.min()), float(tgt_array.max())
+
+    array_min, array_max = np.nanmin(tgt_array), np.nanmax(tgt_array)
+    if not (np.isfinite(array_min) and np.isfinite(array_max)):
+        finite_array = tgt_array[np.isfinite(tgt_array)]
+        if finite_array.size == 0:
+            return 0.0, 1.0
+        array_min, array_max = finite_array.min(), finite_array.max()
+    return float(array_min), float(array_max)
+
+
+def qutil_fast_hist(tgt_array, vmin, vmax, bins=256, max_px=4000000):
+    """
+    カラーバー重畳表示用のヒストグラム(counts, edges)を返す。
+    max_pxを超える画素数の場合はストライド間引きしてから集計する(表示用の近似)。
+    np.histogramはrange指定時にNaN・±infを除外するため、事前のフィルタは不要。
+    """
+    flat_array = np.asarray(tgt_array).ravel()
+    step = int(flat_array.size // max_px) + 1
+    if step > 1:
+        flat_array = flat_array[::step]
+    if vmax <= vmin:
+        vmax = vmin + 1.0
+    return np.histogram(flat_array, bins=bins, range=(vmin, vmax))
+
+
+@lru_cache(maxsize=None)
+def qutil_cmap_contrast_color_cached(cmap_name):
+    cmap_obj = plt.get_cmap(cmap_name)
+    cmap_samples = cmap_obj(np.linspace(0, 1, 32))[:, :3]
+    candidates = np.array([[1, 1, 1], [0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1],
+                           [1, 1, 0], [1, 0, 1], [0, 1, 1], [1, 0.5, 0], [0.5, 0, 1], ])
+    # 各候補とcmap全サンプルとの最小距離を算出し、それが最大の候補を選択
+    dists = np.min(np.linalg.norm(candidates[:, None, :] - cmap_samples[None, :, :], axis=2), axis=1)
+    best = candidates[np.argmax(dists)]
+    return (float(best[0]), float(best[1]), float(best[2]), 0.45)
+
+
+def qutil_cmap_contrast_color(cmap):
+    """cmapから最も遠い1色(ヒストグラム重畳用)を返す。cmap名をキーにキャッシュする。"""
+    return qutil_cmap_contrast_color_cached(getattr(cmap, 'name', cmap))
+
+
 def qutil_data_shaping_2dlist_main(input_data):
     """
     入力データを2次元リストにし、
@@ -1375,7 +1439,15 @@ IIIIIIIIII     mmmmmm   mmmmmm   mmmmmm       aaaaaaaaaa  aaaa         gggggggg:
                                                                        ggg::::::ggg                             
                                                                           gggggg                                                                                                                                                                               
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
-def imageq(tgt_img_list,caxis_list=(0, 0),cmap_list='viridis',fig=None,mode='comp',fast_mode=True):
+def imageq(tgt_img_list,caxis_list=(0, 0),cmap_list='viridis',fig=None,mode='comp',fast_mode=True,
+           hist=True,hist_max_px=4000000,copy=False):
+    """
+    :param hist:        Falseにするとカラーバーへのヒストグラム重畳を省略し、表示・再描画を更に高速化する
+    :param hist_max_px: ヒストグラム集計に使う最大画素数。超える分はストライド間引きされる(表示用の近似)
+    :param copy:        Trueにすると表示用に必ず画像のコピーを取る。
+                        Falseの場合、float32/float64の入力画像は元配列を参照するため、
+                        imageq実行後に元配列を書き換えると表示にも反映される。
+    """
     # ── 非ブロッキング表示: plt.ion() で interactive ON ─────────────────────
     plt.ion()
 
@@ -1434,6 +1506,8 @@ def imageq(tgt_img_list,caxis_list=(0, 0),cmap_list='viridis',fig=None,mode='com
     # ── 各 imshow 描画 ────────────────────────────────────────────────────────
     y_id_max = len(tgt_shape_template)
     x_id_max = int(np.max(np.array([len(i) for i in tgt_shape_template])))
+    axes_list     = []
+    cbar_list_out = []
 
     for y_id in range(len(tgt_shape_template)):
         for x_id in range(len(tgt_shape_template[y_id])):
@@ -1447,27 +1521,33 @@ def imageq(tgt_img_list,caxis_list=(0, 0),cmap_list='viridis',fig=None,mode='com
             else:
                 ax = fig.add_subplot(y_id_max, x_id_max,x_id_max * y_id + x_id + 1,picker=True)
             # 描画画像指定
-            tgt_img = tgt_img_list[y_id][x_id]
+            # 表示用配列をここで1度だけ作り、caxis自動・imshow・ヒストグラムで使い回す
+            tgt_img = qutil_display_array(tgt_img_list[y_id][x_id], copy=copy)
 
             # caxis指定がmin>=maxの場合、画素値の最小最大から自動でcaxis指定
             if caxis_list[y_id][x_id][0] >= caxis_list[y_id][x_id][1]:
-                valid = tgt_img[(tgt_img != -np.inf) & (tgt_img != np.inf)]
-                caxis_list[y_id][x_id] = (float(np.nanmin(valid)),float(np.nanmax(valid)))
+                caxis_list[y_id][x_id] = qutil_finite_minmax(tgt_img)
+            cmin, cmax = caxis_list[y_id][x_id]
 
             # ── imshow ──────────────────────────────
             ims = None
+            hist_img, hist_lim = None, (cmin, cmax)
             if np.ndim(tgt_img) == 2:
                 # 2ch（グレースケール）画像
+                hist_img = tgt_img
                 if fast_mode:
-                    ims = fast_imshow(ax,tgt_img.astype(float),interpolation='nearest',cmap=cmap_list[y_id][x_id],interpolation_stage='data',aspect='equal')
+                    ims = fast_imshow(ax,tgt_img,interpolation='nearest',cmap=cmap_list[y_id][x_id],interpolation_stage='data',aspect='equal')
                 else:
-                    ims = ax.imshow(tgt_img.astype(float), interpolation='nearest', cmap=cmap_list[y_id][x_id],interpolation_stage='data',aspect='equal')
-                ims.set_clim(caxis_list[y_id][x_id][0], caxis_list[y_id][x_id][1])
+                    ims = ax.imshow(tgt_img, interpolation='nearest', cmap=cmap_list[y_id][x_id],interpolation_stage='data',aspect='equal')
+                ims.set_clim(cmin, cmax)
             elif np.ndim(tgt_img) == 3:
                 # 3ch 画像: cmin〜cmax で 0-1 に正規化してから表示
                 print("imq-Warning: The image was normalized to 0-1 and clipped in the cmin-cmax range for a 3-channel image.")
-                cmin, cmax = caxis_list[y_id][x_id]
-                norm_img = np.clip((tgt_img.astype(float) - cmin) / (cmax - cmin),0, 1)
+                norm_img = np.empty_like(tgt_img)
+                np.subtract(tgt_img, cmin, out=norm_img)
+                np.multiply(norm_img, 1.0 / (cmax - cmin) if cmax > cmin else 1.0, out=norm_img)
+                np.clip(norm_img, 0, 1, out=norm_img)
+                hist_img, hist_lim = norm_img, (0.0, 1.0)
                 if fast_mode:
                     ims = fast_imshow(ax, norm_img, interpolation='nearest', cmap=cmap_list[y_id][x_id], interpolation_stage='data',aspect='equal')
                 else:
@@ -1482,43 +1562,30 @@ def imageq(tgt_img_list,caxis_list=(0, 0),cmap_list='viridis',fig=None,mode='com
 
             # カラーバー（ヒストグラム重畳）
             if ims is not None:
+                axes_list.append(ax)
                 divider  = make_axes_locatable(ax)
                 ax_cbar  = divider.new_horizontal(size="5%", pad=0.075)
                 fig.add_axes(ax_cbar)
                 fig.colorbar(ims, cax=ax_cbar)
+                cbar_list_out.append(ax_cbar)
 
-                # cmapから最も遠い1色を選択
-                cmap_obj = plt.get_cmap(cmap_list[y_id][x_id])
-                cmap_samples = cmap_obj(np.linspace(0, 1, 32))[:, :3]
-                candidates = np.array([[1, 1, 1], [0, 0, 0], [1, 0, 0], [0, 1, 0],   [0, 0, 1],
-                                       [1, 1, 0], [1, 0, 1], [0, 1, 1], [1, 0.5, 0], [0.5, 0, 1],])
-                # 各候補とcmap全サンプルとの最小距離を算出し、それが最大の候補を選択
-                dists = np.min(np.linalg.norm(
-                    candidates[:, None, :] - cmap_samples[None, :, :], axis=2
-                ), axis=1)
-                best = candidates[np.argmax(dists)]
-                bar_color = (*best, 0.45)
-
-                # ヒストグラムをカラーバー上に重畳
-                bin_num = 256
-                ax_hist = ax_cbar.twiny()
-                flat = tgt_img.ravel()
-                flat = flat[np.isfinite(flat)]
-                vmin = np.min(flat)
-                vmax = np.max(flat)
-                counts, edges = np.histogram(flat, bins=bin_num, range=(vmin, vmax))
-                centers = 0.5 * (edges[:-1] + edges[1:])
-                ax_hist.barh(centers, counts, height=(vmax - vmin) / bin_num,
-                             color=bar_color, edgecolor='none', alpha=0.45)
-                ax_hist.set_ylim(vmin, vmax)
-                ax_hist.set_xlim(0, counts.max() * 1.05 if counts.max() > 0 else 1)
-                ax_hist.tick_params(labelbottom=False, labeltop=False,
-                                    bottom=False, top=False)
-                ax_hist.set_facecolor('none')
-
-    # 軸が img, hist, cbar, img, hist, cbar, ... の順（3つ刻み）
-    axes_list     = fig.get_axes()[0::3]
-    cbar_list_out = fig.get_axes()[2::3]
+                if hist:
+                    # ヒストグラムをカラーバー上に重畳
+                    # 256本のbarではなく単一アーティスト(stairs)で描き、再描画コストを抑える
+                    counts, edges = qutil_fast_hist(hist_img, hist_lim[0], hist_lim[1],
+                                                    bins=256, max_px=hist_max_px)
+                    ax_hist = ax_cbar.twiny()
+                    ax_hist.stairs(counts, edges, orientation='horizontal', fill=True, baseline=0,
+                                   color=qutil_cmap_contrast_color(cmap_list[y_id][x_id]), edgecolor='none')
+                    # 実際に集計したbinの範囲に合わせる(定数画像でmin==maxになる場合の縮退も回避)
+                    ax_hist.set_ylim(edges[0], edges[-1])
+                    ax_hist.set_xlim(0, counts.max() * 1.05 if counts.max() > 0 else 1)
+                    ax_hist.tick_params(labelbottom=False, labeltop=False,
+                                        bottom=False, top=False)
+                    ax_hist.set_facecolor('none')
+                    ax_hist.set_navigate(False)
+                    # カラーバー上のドラッグ操作はカラーバーに重なる最前面の軸が受け取る
+                    cbar_list_out[-1] = ax_hist
 
     # ── マウス・キーボード拡張（q_addon）の適用 ──────────────────────────────
     fig = q_addon(fig,axes_list,keyboard_dict=keyboard_dict,imageq=True,cbar_list=cbar_list_out)
